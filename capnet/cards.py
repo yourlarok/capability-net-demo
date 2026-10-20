@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 
 ACCESSIBILITY = ("api", "cli", "mcp", "gui", "manual")
 AUTO_CALLABLE = ("api", "cli", "mcp")
+# v1 transport 是传输方式而非可访问性：http/local 端点 agent 都能直接调
+V1_TRANSPORT = {"http": "api", "local": "cli"}
 
 V2_REQUIRED = {"app_id", "name", "capabilities"}
 CAP_REQUIRED = {"domain", "intents", "outputs", "accessibility"}
@@ -139,7 +141,8 @@ def _wrap_v1(item: dict) -> AppCard:
         true_quality=item.get("true_quality", 0.5),
         capabilities=[Capability(
             domain=item["domain"], intents=item["intents"], outputs=item["outputs"],
-            inputs=item.get("inputs", []), accessibility=item.get("transport", "api"),
+            inputs=item.get("inputs", []),
+            accessibility=V1_TRANSPORT.get(item.get("transport", "api"), item.get("transport", "api")),
             cost_per_call=item.get("cost_per_call", 0.0), latency=item.get("latency", "medium"),
         )],
     )
