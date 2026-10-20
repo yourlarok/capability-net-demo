@@ -1,0 +1,102 @@
+[
+ {
+  "domain": "marketing",
+  "query": "给奶茶店做的开业宣传短视频数据很差，想重新剪",
+  "expect": "marketing-video-improve"
+ },
+ {
+  "domain": "marketing",
+  "query": "B站投放的 UP 主合作视频转化不理想，下次怎么改",
+  "expect": "marketing-video-improve"
+ },
+ {
+  "domain": "marketing",
+  "query": "短视频广告的跳出率高，用户看两秒就走",
+  "expect": "marketing-video-improve"
+ },
+ {
+  "domain": "brand",
+  "query": "老字号品牌想年轻化，做一波社媒营销",
+  "expect": "brand-campaign"
+ },
+ {
+  "domain": "brand",
+  "query": "双十一大促的品牌传播策划",
+  "expect": "brand-campaign"
+ },
+ {
+  "domain": "social",
+  "query": "视频号刚开，怎么定位和规划内容",
+  "expect": "account-growth"
+ },
+ {
+  "domain": "social",
+  "query": "想当美食博主，怎么开始",
+  "expect": "account-growth"
+ },
+ {
+  "domain": "commerce",
+  "query": "拼多多店铺的商品主图转化低",
+  "expect": "ecommerce-product-video"
+ },
+ {
+  "domain": "commerce",
+  "query": "给手工皂拍种草视频发小红书卖货",
+  "expect": "ecommerce-product-video|account-growth"
+ },
+ {
+  "domain": "live",
+  "query": "直播间 GMV 连续三场下滑",
+  "expect": "live-commerce-review"
+ },
+ {
+  "domain": "edu",
+  "query": "把我的线下讲座录成在线课程",
+  "expect": "course-video"
+ },
+ {
+  "domain": "podcast",
+  "query": "做一期双人对谈的音频节目",
+  "expect": "podcast-episode"
+ },
+ {
+  "domain": "game",
+  "query": "做一个可以上架 Steam 的解谜小游戏",
+  "expect": "game-dev"
+ },
+ {
+  "domain": "drama",
+  "query": "做一部 2 分钟的 AI 动画短片，有角色有剧情",
+  "expect": "short-drama-episode"
+ },
+ {
+  "domain": "recap",
+  "query": "给热门美剧做一期剧情速看视频",
+  "expect": "video-recap"
+ },
+ {
+  "domain": "adv-out",
+  "query": "我的电脑播放视频卡顿怎么办",
+  "expect": null
+ },
+ {
+  "domain": "adv-out",
+  "query": "推荐几本营销学的经典书",
+  "expect": null
+ },
+ {
+  "domain": "adv-out",
+  "query": "直播电商的税务怎么申报",
+  "expect": null
+ },
+ {
+  "domain": "adv-out",
+  "query": "游戏手柄连不上电脑",
+  "expect": null
+ },
+ {
+  "domain": "adv-out",
+  "query": "播客耳机推荐",
+  "expect": null
+ }
+]

@@ -1,0 +1,173 @@
+{
+  "workflow_id": "brand-campaign",
+  "name": "品牌整合传播 Campaign",
+  "industry": "marketing/brand",
+  "source": {
+    "kind": "expert-curation",
+    "derived_from": "4A 广告公司通行流程：洞察→策略→大创意→制作→投放→效果评估；待真实轨迹校准"
+  },
+  "intents": [
+    "品牌",
+    "campaign",
+    "整合营销",
+    "品牌推广",
+    "新品发布",
+    "传播方案",
+    "营销方案",
+    "品牌活动",
+    "创意方案",
+    "营销策划"
+  ],
+  "inputs_needed": [
+    "品牌与产品资料",
+    "传播目标与 KPI",
+    "预算",
+    "时间节点",
+    "目标人群"
+  ],
+  "stages": [
+    {
+      "id": "insight",
+      "name": "消费者洞察",
+      "goal": "找到一个真实且未被满足的张力",
+      "method": [
+        "定量看人群与趋势",
+        "定性访谈 5–8 人",
+        "写成'我想要…但是…'的洞察句"
+      ],
+      "deliverable": "洞察报告",
+      "checks": [
+        "洞察有一手证据"
+      ],
+      "slots": [
+        {
+          "slot_id": "user",
+          "domain": "research.user",
+          "replacement_query": "domain:research.user"
+        },
+        {
+          "slot_id": "trend",
+          "domain": "data.research",
+          "replacement_query": "domain:data.research"
+        }
+      ]
+    },
+    {
+      "id": "strategy",
+      "name": "策略与核心信息",
+      "goal": "一句核心信息 + 支撑点",
+      "method": [
+        "定位与竞争框架",
+        "信息屋：核心信息/支撑/证据"
+      ],
+      "deliverable": "策略 brief",
+      "checks": [
+        "brief 一页纸"
+      ],
+      "slots": [
+        {
+          "slot_id": "brand",
+          "domain": "strategy.brand",
+          "replacement_query": "domain:strategy.brand"
+        }
+      ]
+    },
+    {
+      "id": "idea",
+      "name": "大创意",
+      "goal": "可延展到多渠道的创意概念",
+      "method": [
+        "发散 10 个概念",
+        "按洞察契合度与可延展性收敛到 2 个",
+        "写 slogan 与关键画面"
+      ],
+      "deliverable": "创意提案",
+      "checks": [
+        "能延展出 ≥3 种渠道形式"
+      ],
+      "slots": [
+        {
+          "slot_id": "copy",
+          "domain": "text.copywriting",
+          "replacement_query": "domain:text.copywriting"
+        },
+        {
+          "slot_id": "kv",
+          "domain": "image.gen",
+          "replacement_query": "domain:image.gen",
+          "alt_domains": [
+            "image.design"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "produce",
+      "name": "物料制作",
+      "goal": "主视觉、主视频与社媒物料",
+      "method": [
+        "主 KV",
+        "TVC/主视频",
+        "社媒切片"
+      ],
+      "deliverable": "物料包",
+      "checks": [
+        "品牌规范一致"
+      ],
+      "slots": [
+        {
+          "slot_id": "video",
+          "domain": "video.edit",
+          "replacement_query": "domain:video.edit",
+          "alt_domains": [
+            "video.gen"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "launch",
+      "name": "投放与发布",
+      "goal": "按节奏引爆",
+      "method": [
+        "预热-引爆-长尾三阶段排期",
+        "付费 + 自有 + 达人组合"
+      ],
+      "deliverable": "排期表",
+      "checks": [
+        "按期上线"
+      ],
+      "slots": [
+        {
+          "slot_id": "ads",
+          "domain": "ads.campaign",
+          "replacement_query": "domain:ads.campaign"
+        }
+      ]
+    },
+    {
+      "id": "measure",
+      "name": "效果评估",
+      "goal": "对照 KPI 复盘",
+      "method": [
+        "曝光/互动/搜索指数/销量对比",
+        "归因各渠道贡献"
+      ],
+      "deliverable": "结案报告",
+      "checks": [
+        "KPI 达成情况明确"
+      ],
+      "slots": [
+        {
+          "slot_id": "analytics",
+          "domain": "data.analytics",
+          "replacement_query": "domain:data.analytics"
+        }
+      ]
+    }
+  ],
+  "completion_signals": [
+    "KPI 达成",
+    "结案报告"
+  ]
+}

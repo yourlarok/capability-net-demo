@@ -1,0 +1,174 @@
+{
+  "workflow_id": "ecommerce-product-video",
+  "name": "电商商品短视频与主图视频",
+  "industry": "commerce/ecommerce",
+  "source": {
+    "kind": "expert-curation",
+    "derived_from": "电商内容运营通行做法：卖点提炼→素材→脚本→制作→上架→投放；待真实轨迹校准"
+  },
+  "intents": [
+    "电商",
+    "带货视频",
+    "商品视频",
+    "主图视频",
+    "种草视频",
+    "卖货",
+    "淘宝",
+    "抖店",
+    "商品上架",
+    "商品图",
+    "详情页"
+  ],
+  "inputs_needed": [
+    "商品实物或原始图片",
+    "商品参数、价格、核心卖点",
+    "目标平台（抖音/淘宝/小红书）",
+    "竞品链接"
+  ],
+  "stages": [
+    {
+      "id": "selling",
+      "name": "卖点提炼",
+      "goal": "从竞品与评论中找到用户真正买单的 1–3 个卖点",
+      "method": [
+        "拉同类目 TOP 商品与带货视频",
+        "扫差评与问大家：用户的顾虑就是要回答的卖点",
+        "卖点写成'场景+痛点+证明'三段"
+      ],
+      "deliverable": "卖点卡（每条含证据）",
+      "checks": [
+        "卖点有数据或评论佐证"
+      ],
+      "slots": [
+        {
+          "slot_id": "research",
+          "domain": "data.research",
+          "replacement_query": "domain:data.research"
+        }
+      ]
+    },
+    {
+      "id": "assets",
+      "name": "商品素材",
+      "goal": "白底图、场景图、细节图齐备",
+      "method": [
+        "白底图去背景",
+        "生成 3–5 张使用场景图",
+        "做主图与卖点海报"
+      ],
+      "deliverable": "主图 + 场景图 + 卖点图",
+      "checks": [
+        "主图符合平台规范"
+      ],
+      "slots": [
+        {
+          "slot_id": "product-img",
+          "domain": "image.product",
+          "replacement_query": "domain:image.product",
+          "alt_domains": [
+            "image.edit"
+          ]
+        },
+        {
+          "slot_id": "poster",
+          "domain": "image.design",
+          "replacement_query": "domain:image.design"
+        }
+      ]
+    },
+    {
+      "id": "script",
+      "name": "视频脚本",
+      "goal": "15–30 秒结构化脚本",
+      "method": [
+        "3 秒痛点/效果钩子",
+        "演示卖点并给证明",
+        "结尾价格锚点 + 行动号召"
+      ],
+      "deliverable": "2–3 版脚本",
+      "checks": [
+        "每版钩子不同"
+      ],
+      "slots": [
+        {
+          "slot_id": "copy",
+          "domain": "text.copywriting",
+          "replacement_query": "domain:text.copywriting"
+        }
+      ]
+    },
+    {
+      "id": "produce",
+      "name": "视频制作",
+      "goal": "做出多版本素材",
+      "method": [
+        "实拍或 AI 生成画面",
+        "加字幕与卖点花字",
+        "导出竖版 9:16"
+      ],
+      "deliverable": "2–3 条成片",
+      "checks": [
+        "静音可看懂"
+      ],
+      "slots": [
+        {
+          "slot_id": "edit",
+          "domain": "video.edit",
+          "replacement_query": "domain:video.edit"
+        },
+        {
+          "slot_id": "aigc",
+          "domain": "video.gen",
+          "replacement_query": "domain:video.gen",
+          "alt_domains": [
+            "video.img2video"
+          ],
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "listing",
+      "name": "上架",
+      "goal": "商品页与视频挂载",
+      "method": [
+        "上传主图视频与详情页",
+        "标题含核心搜索词"
+      ],
+      "deliverable": "已上架商品",
+      "checks": [
+        "审核通过"
+      ],
+      "slots": [
+        {
+          "slot_id": "listing",
+          "domain": "commerce.listing",
+          "replacement_query": "domain:commerce.listing"
+        }
+      ]
+    },
+    {
+      "id": "ads",
+      "name": "投放测试",
+      "goal": "找到 ROI 最高的素材",
+      "method": [
+        "小预算多素材测试",
+        "按 ROI 加预算、关停尾部"
+      ],
+      "deliverable": "素材 ROI 排名",
+      "checks": [
+        "胜出素材 ROI 达标"
+      ],
+      "slots": [
+        {
+          "slot_id": "ads",
+          "domain": "ads.campaign",
+          "replacement_query": "domain:ads.campaign"
+        }
+      ]
+    }
+  ],
+  "completion_signals": [
+    "至少 1 条素材 ROI 达标并放量"
+  ]
+}

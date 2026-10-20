@@ -14,14 +14,27 @@ class TestWorkflows(unittest.TestCase):
     def setUpClass(cls):
         cls.wfs = load_workflows(os.path.join(BASE, "data", "workflows"))
 
-    def test_three_seed_workflows_load(self):
+    def test_seed_workflows_load(self):
         ids = {w.workflow_id for w in self.wfs}
-        self.assertEqual(ids, {"game-dev", "short-drama-episode", "video-recap"})
+        self.assertTrue({"game-dev", "short-drama-episode", "video-recap",
+                         "marketing-video-improve"} <= ids)
 
-    def test_sources_are_practice_summaries(self):
+    def test_sources_are_traceable(self):
         for w in self.wfs:
-            self.assertEqual(w.source["kind"], "practice-summary")
+            if w.workflow_id in ("game-dev", "short-drama-episode", "video-recap"):
+                self.assertEqual(w.source["kind"], "practice-summary")
             self.assertTrue(w.source["derived_from"])
+
+    def test_every_workflow_has_retrieval_intents(self):
+        for w in self.wfs:
+            self.assertTrue(w.intents, w.workflow_id)
+
+    def test_curated_stages_carry_method_and_checks(self):
+        for w in self.wfs:
+            if w.source["kind"] != "expert-curation":
+                continue
+            for st in w.stages:
+                self.assertTrue(st.method and st.checks, f"{w.workflow_id}.{st.id}")
 
     def test_slots_have_domain_and_constraints(self):
         for w in self.wfs:

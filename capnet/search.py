@@ -12,18 +12,13 @@ from dataclasses import dataclass, field
 from .cards import Card
 from .domains import UserProfile
 from .scoring import Breakdown, ScoreContext, Stats, score_card
-from .tokens import FIELD_WEIGHTS, tokenize
+from .tokens import field_relevance, idf_table, tokenize
 
 __all__ = ["tokenize", "relevance", "search", "search_store", "as_options", "RankedCard", "FunnelTrace"]
 
 
 def _idf(cards: list[Card]) -> dict[str, float]:
-    n = len(cards)
-    df: dict[str, int] = {}
-    for c in cards:
-        for t in set(tokenize(c.searchable_text)):
-            df[t] = df.get(t, 0) + 1
-    return {t: math.log(1.0 + n / d) for t, d in df.items()}
+    return idf_table([c.searchable_text for c in cards])
 
 
 def _field_tokens(card: Card) -> dict[str, set[str]]:
@@ -37,20 +32,7 @@ def _field_tokens(card: Card) -> dict[str, set[str]]:
 
 
 def relevance(query: str, card: Card, idf: dict[str, float]) -> float:
-    q_tokens = set(tokenize(query))
-    if not q_tokens:
-        return 0.0
-    fields = _field_tokens(card)
-    hit = 0.0
-    total = 0.0
-    for t in q_tokens:
-        w_idf = idf.get(t, 0.0)
-        if w_idf <= 0.0:
-            continue
-        total += w_idf
-        field_w = max((FIELD_WEIGHTS[f] for f, ts in fields.items() if t in ts), default=0.0)
-        hit += w_idf * field_w
-    return hit / total if total > 0 else 0.0
+    return field_relevance(query, _field_tokens(card), idf)
 
 
 @dataclass

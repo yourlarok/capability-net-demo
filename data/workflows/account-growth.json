@@ -1,0 +1,138 @@
+{
+  "workflow_id": "account-growth",
+  "name": "短视频账号冷启动与增长",
+  "industry": "marketing/social",
+  "source": {
+    "kind": "expert-curation",
+    "derived_from": "新媒体运营通行做法：定位→对标→内容支柱→批量生产→分发→周复盘；待真实轨迹校准"
+  },
+  "intents": [
+    "账号",
+    "涨粉",
+    "冷启动",
+    "起号",
+    "账号定位",
+    "运营",
+    "自媒体",
+    "做号",
+    "小红书",
+    "粉丝增长",
+    "账号增长",
+    "个人ip",
+    "ip",
+    "人设",
+    "博主"
+  ],
+  "inputs_needed": [
+    "想做的领域与自身优势",
+    "可投入的时间/人手",
+    "平台选择",
+    "变现方式设想"
+  ],
+  "stages": [
+    {
+      "id": "position",
+      "name": "定位与对标",
+      "goal": "一句话说清'给谁看、看什么、为什么关注你'",
+      "method": [
+        "找 5 个对标账号拆选题与人设",
+        "写账号定位句与人设三要素"
+      ],
+      "deliverable": "定位文档 + 对标清单",
+      "checks": [
+        "定位句 ≤20 字"
+      ],
+      "slots": [
+        {
+          "slot_id": "research",
+          "domain": "data.research",
+          "replacement_query": "domain:data.research"
+        }
+      ]
+    },
+    {
+      "id": "pillars",
+      "name": "内容支柱与选题库",
+      "goal": "3 个内容支柱、30 个选题",
+      "method": [
+        "每支柱 10 个选题",
+        "每个选题标钩子类型"
+      ],
+      "deliverable": "选题库",
+      "checks": [
+        "选题经热度验证"
+      ],
+      "slots": [
+        {
+          "slot_id": "copy",
+          "domain": "text.copywriting",
+          "replacement_query": "domain:text.copywriting"
+        }
+      ]
+    },
+    {
+      "id": "batch",
+      "name": "批量生产",
+      "goal": "建立可持续的周产能",
+      "method": [
+        "固定模板与片头片尾",
+        "一次拍/做 5–7 条"
+      ],
+      "deliverable": "一周存稿",
+      "checks": [
+        "稳定日更或隔日更"
+      ],
+      "slots": [
+        {
+          "slot_id": "edit",
+          "domain": "video.edit",
+          "replacement_query": "domain:video.edit"
+        }
+      ]
+    },
+    {
+      "id": "distribute",
+      "name": "分发",
+      "goal": "多平台同步发布",
+      "method": [
+        "按平台改标题与封面",
+        "固定发布时间"
+      ],
+      "deliverable": "发布记录",
+      "checks": [
+        "全部按时发布"
+      ],
+      "slots": [
+        {
+          "slot_id": "publish",
+          "domain": "publish.social",
+          "replacement_query": "domain:publish.social"
+        }
+      ]
+    },
+    {
+      "id": "review",
+      "name": "周复盘",
+      "goal": "数据驱动调整选题",
+      "method": [
+        "看完播率与涨粉率 TOP/BOTTOM 3",
+        "爆款做系列、扑街换钩子"
+      ],
+      "deliverable": "周报",
+      "checks": [
+        "每周迭代 ≥1 个变量"
+      ],
+      "slots": [
+        {
+          "slot_id": "analytics",
+          "domain": "data.analytics",
+          "replacement_query": "domain:data.analytics"
+        }
+      ]
+    }
+  ],
+  "completion_signals": [
+    "连续 4 周涨粉率上升",
+    "出现首个破圈爆款"
+  ]
+}

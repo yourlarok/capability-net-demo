@@ -1,0 +1,182 @@
+[
+ {
+  "domain": "marketing",
+  "query": "我们公司的产品宣传视频播放量很低，帮我出一个完善的视频改进计划",
+  "expect": "marketing-video-improve"
+ },
+ {
+  "domain": "marketing",
+  "query": "投了一周信息流广告，素材 CTR 只有 0.8%，怎么优化这条广告视频",
+  "expect": "marketing-video-improve"
+ },
+ {
+  "domain": "marketing",
+  "query": "抖音视频完播率太低了，前三秒就划走，怎么改",
+  "expect": "marketing-video-improve"
+ },
+ {
+  "domain": "marketing",
+  "query": "帮我分析一下这条推广视频为什么转化差，给出优化方案",
+  "expect": "marketing-video-improve"
+ },
+ {
+  "domain": "marketing",
+  "query": "Our product promo video gets views but nobody clicks the link, how to fix it",
+  "expect": "marketing-video-improve"
+ },
+ {
+  "domain": "marketing",
+  "query": "老板说我们的片子没人看，下个月要拿出改版思路",
+  "expect": "marketing-video-improve"
+ },
+ {
+  "domain": "brand",
+  "query": "下个季度要发布新品，帮我做一个整合营销传播方案",
+  "expect": "brand-campaign"
+ },
+ {
+  "domain": "brand",
+  "query": "给一个国潮茶饮品牌策划一场线上 campaign",
+  "expect": "brand-campaign"
+ },
+ {
+  "domain": "brand",
+  "query": "公司想提升品牌知名度，预算 50 万，怎么规划",
+  "expect": "brand-campaign"
+ },
+ {
+  "domain": "social",
+  "query": "想做一个小红书美妆账号，从零起号怎么做",
+  "expect": "account-growth"
+ },
+ {
+  "domain": "social",
+  "query": "我的抖音账号三个月才 200 粉，怎么涨粉",
+  "expect": "account-growth"
+ },
+ {
+  "domain": "social",
+  "query": "个人 IP 怎么打造，打算做职场类内容",
+  "expect": "account-growth"
+ },
+ {
+  "domain": "commerce",
+  "query": "新上架一款保温杯，需要做主图视频和带货短视频",
+  "expect": "ecommerce-product-video"
+ },
+ {
+  "domain": "commerce",
+  "query": "淘宝店的商品详情页和主图怎么做得更有吸引力",
+  "expect": "ecommerce-product-video"
+ },
+ {
+  "domain": "commerce",
+  "query": "帮我给一款蓝牙耳机做抖音带货素材",
+  "expect": "ecommerce-product-video"
+ },
+ {
+  "domain": "live",
+  "query": "昨晚直播场观 2 万但只卖了 30 单，帮我复盘",
+  "expect": "live-commerce-review"
+ },
+ {
+  "domain": "live",
+  "query": "直播间留不住人，主播话术怎么优化",
+  "expect": "live-commerce-review"
+ },
+ {
+  "domain": "edu",
+  "query": "我想把 Python 入门做成一套网课视频",
+  "expect": "course-video"
+ },
+ {
+  "domain": "edu",
+  "query": "公司内部要做新员工培训视频，怎么制作",
+  "expect": "course-video"
+ },
+ {
+  "domain": "edu",
+  "query": "给初中物理录一节讲浮力的教学视频",
+  "expect": "course-video"
+ },
+ {
+  "domain": "podcast",
+  "query": "想开一档聊科技创业的播客，第一期怎么做",
+  "expect": "podcast-episode"
+ },
+ {
+  "domain": "podcast",
+  "query": "录好的访谈音频有底噪，还要出 shownotes 发小宇宙",
+  "expect": "podcast-episode"
+ },
+ {
+  "domain": "game",
+  "query": "做一个像素风的猫咪 RTS 小游戏原型",
+  "expect": "game-dev"
+ },
+ {
+  "domain": "game",
+  "query": "帮我做个独立游戏，需要美术和音效",
+  "expect": "game-dev"
+ },
+ {
+  "domain": "drama",
+  "query": "做一集 AI 漫剧，从剧本到成片",
+  "expect": "short-drama-episode"
+ },
+ {
+  "domain": "drama",
+  "query": "把我的网文第一章改编成竖屏短剧",
+  "expect": "short-drama-episode"
+ },
+ {
+  "domain": "recap",
+  "query": "给《星际穿越》做一条电影解说视频",
+  "expect": "video-recap"
+ },
+ {
+  "domain": "recap",
+  "query": "把这部老剧剪成 10 分钟剧情解说",
+  "expect": "video-recap"
+ },
+ {
+  "domain": "ambiguous",
+  "query": "做一个品牌宣传片",
+  "expect": "brand-campaign|marketing-video-improve"
+ },
+ {
+  "domain": "ambiguous",
+  "query": "给课程做推广视频，提高报名转化",
+  "expect": "marketing-video-improve|course-video"
+ },
+ {
+  "domain": "out",
+  "query": "帮我审查一份房屋租赁合同的风险条款",
+  "expect": null
+ },
+ {
+  "domain": "out",
+  "query": "设计一个三居室的装修方案",
+  "expect": null
+ },
+ {
+  "domain": "out",
+  "query": "公司年报的财务报表审计怎么做",
+  "expect": null
+ },
+ {
+  "domain": "out",
+  "query": "制定一个马拉松训练计划",
+  "expect": null
+ },
+ {
+  "domain": "out",
+  "query": "量子计算云服务选型",
+  "expect": null
+ },
+ {
+  "domain": "out",
+  "query": "给医院做一套排班系统",
+  "expect": null
+ }
+]

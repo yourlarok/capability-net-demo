@@ -1,0 +1,169 @@
+{
+  "workflow_id": "course-video",
+  "name": "知识课程视频制作",
+  "industry": "education/course",
+  "source": {
+    "kind": "expert-curation",
+    "derived_from": "在线课程制作通行流程：学习目标→大纲→讲稿→课件→录制→剪辑→发布与反馈；待真实轨迹校准"
+  },
+  "intents": [
+    "课程",
+    "网课",
+    "教学视频",
+    "录课",
+    "知识付费",
+    "培训视频",
+    "讲课",
+    "课件",
+    "教程",
+    "知识视频"
+  ],
+  "inputs_needed": [
+    "课程主题与目标学员",
+    "已有资料或讲义",
+    "单节时长预期",
+    "是否真人出镜"
+  ],
+  "stages": [
+    {
+      "id": "objectives",
+      "name": "学习目标与大纲",
+      "goal": "每节课一个可检验的学习目标",
+      "method": [
+        "用'学完能做到…'写目标",
+        "拆成 5–15 分钟一节"
+      ],
+      "deliverable": "大纲",
+      "checks": [
+        "每节目标可检验"
+      ],
+      "slots": []
+    },
+    {
+      "id": "script",
+      "name": "讲稿",
+      "goal": "口语化讲稿 + 例子",
+      "method": [
+        "每节开头说清'学完能做什么'",
+        "每个概念配一个例子",
+        "结尾小结 + 练习"
+      ],
+      "deliverable": "讲稿",
+      "checks": [
+        "朗读时长符合预期"
+      ],
+      "slots": [
+        {
+          "slot_id": "copy",
+          "domain": "text.copywriting",
+          "replacement_query": "domain:text.copywriting",
+          "alt_domains": [
+            "text.writing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "slides",
+      "name": "课件",
+      "goal": "一页一个要点",
+      "method": [
+        "每页 ≤3 行字",
+        "图示代替文字"
+      ],
+      "deliverable": "课件",
+      "checks": [
+        "无大段文字页"
+      ],
+      "slots": [
+        {
+          "slot_id": "slides",
+          "domain": "office.slides",
+          "replacement_query": "domain:office.slides"
+        }
+      ]
+    },
+    {
+      "id": "record",
+      "name": "录制",
+      "goal": "清晰的画面与人声",
+      "method": [
+        "录屏或出镜",
+        "无真人时可用 TTS 配音"
+      ],
+      "deliverable": "原始素材",
+      "checks": [
+        "人声无底噪"
+      ],
+      "slots": [
+        {
+          "slot_id": "record",
+          "domain": "video.record",
+          "replacement_query": "domain:video.record"
+        },
+        {
+          "slot_id": "tts",
+          "domain": "audio.tts",
+          "replacement_query": "domain:audio.tts",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "edit",
+      "name": "剪辑与字幕",
+      "goal": "删口误、加字幕与重点标注",
+      "method": [
+        "删停顿与口误",
+        "生成字幕",
+        "关键处加标注/缩放"
+      ],
+      "deliverable": "成片",
+      "checks": [
+        "字幕准确率高"
+      ],
+      "slots": [
+        {
+          "slot_id": "edit",
+          "domain": "video.edit",
+          "replacement_query": "domain:video.edit"
+        },
+        {
+          "slot_id": "asr",
+          "domain": "audio.asr",
+          "replacement_query": "domain:audio.asr"
+        }
+      ]
+    },
+    {
+      "id": "feedback",
+      "name": "发布与反馈",
+      "goal": "收集学员反馈迭代",
+      "method": [
+        "发布",
+        "课后问卷"
+      ],
+      "deliverable": "反馈报告",
+      "checks": [
+        "回收率与满意度达标"
+      ],
+      "slots": [
+        {
+          "slot_id": "publish",
+          "domain": "publish.social",
+          "replacement_query": "domain:publish.social",
+          "required": false
+        },
+        {
+          "slot_id": "survey",
+          "domain": "research.user",
+          "replacement_query": "domain:research.user"
+        }
+      ]
+    }
+  ],
+  "completion_signals": [
+    "整套课程上线",
+    "学员满意度达标"
+  ]
+}

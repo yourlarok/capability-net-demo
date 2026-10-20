@@ -1,0 +1,130 @@
+{
+  "workflow_id": "podcast-episode",
+  "name": "播客单集制作",
+  "industry": "content/podcast",
+  "source": {
+    "kind": "expert-curation",
+    "derived_from": "播客制作通行流程：选题→提纲→录制→剪辑→转写与 shownotes→发布；待真实轨迹校准"
+  },
+  "intents": [
+    "播客",
+    "podcast",
+    "电台",
+    "音频节目",
+    "访谈节目",
+    "小宇宙",
+    "录播客"
+  ],
+  "inputs_needed": [
+    "选题与嘉宾",
+    "录音设备情况",
+    "发布平台"
+  ],
+  "stages": [
+    {
+      "id": "outline",
+      "name": "选题与提纲",
+      "goal": "一个有张力的问题 + 5–7 个提问",
+      "method": [
+        "定节目核心问题",
+        "按'故事—观点—分歧'排提问"
+      ],
+      "deliverable": "提纲",
+      "checks": [
+        "嘉宾已确认"
+      ],
+      "slots": [
+        {
+          "slot_id": "copy",
+          "domain": "text.copywriting",
+          "replacement_query": "domain:text.copywriting"
+        }
+      ]
+    },
+    {
+      "id": "record",
+      "name": "录制",
+      "goal": "干净的分轨录音",
+      "method": [
+        "分轨录制",
+        "录前试音"
+      ],
+      "deliverable": "原始音轨",
+      "checks": [
+        "无爆音/底噪"
+      ],
+      "slots": []
+    },
+    {
+      "id": "edit",
+      "name": "剪辑与降噪",
+      "goal": "去口癖、控节奏",
+      "method": [
+        "降噪与响度统一",
+        "删冗长段落"
+      ],
+      "deliverable": "成品音频",
+      "checks": [
+        "响度符合平台规范"
+      ],
+      "slots": [
+        {
+          "slot_id": "edit",
+          "domain": "audio.edit",
+          "replacement_query": "domain:audio.edit",
+          "alt_domains": [
+            "audio.repair"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "notes",
+      "name": "转写与 shownotes",
+      "goal": "时间轴 + 要点",
+      "method": [
+        "转写",
+        "生成时间轴与要点"
+      ],
+      "deliverable": "shownotes",
+      "checks": [
+        "时间轴准确"
+      ],
+      "slots": [
+        {
+          "slot_id": "asr",
+          "domain": "audio.asr",
+          "replacement_query": "domain:audio.asr"
+        },
+        {
+          "slot_id": "copy",
+          "domain": "text.copywriting",
+          "replacement_query": "domain:text.copywriting"
+        }
+      ]
+    },
+    {
+      "id": "publish",
+      "name": "发布",
+      "goal": "上线与推广",
+      "method": [
+        "发布并配封面",
+        "切片推社媒"
+      ],
+      "deliverable": "上线节目",
+      "checks": [
+        "按期上线"
+      ],
+      "slots": [
+        {
+          "slot_id": "publish",
+          "domain": "publish.podcast",
+          "replacement_query": "domain:publish.podcast"
+        }
+      ]
+    }
+  ],
+  "completion_signals": [
+    "节目上线"
+  ]
+}

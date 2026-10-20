@@ -189,6 +189,51 @@ def cmd_gaps(args) -> None:
         print(f"  {r['count']:>4}×  {dom}{r['query']}  ({r['reason']})")
 
 
+def cmd_plan(args) -> None:
+    from capnet.planner import plan, render_plan
+    from capnet.registry import Registry
+    reg = Registry.load()
+    p = plan(args.query, reg, k=args.k, max_cost=args.max_cost)
+    if not p.matched:
+        log_gap(GAPS, args.query, None, "no_workflow")
+    for sl in p.gaps:
+        log_gap(GAPS, args.query, sl.domain, "slot_unfilled")
+    text = render_plan(p)
+    if args.out:
+        with open(args.out, "w", encoding="utf-8") as f:
+            f.write(text + "\n")
+        print(f"计划已写入 {args.out}")
+    else:
+        print(text)
+    if args.trace:
+        from dataclasses import asdict
+        print("\n--- 执行后补全 ok/retries/accepted 再上报的轨迹模板 ---")
+        print(json.dumps(asdict(p.trace_template("me")), ensure_ascii=False, indent=2))
+
+
+def cmd_eval(args) -> None:
+    from capnet.evaluate import render_report, run_eval
+    from capnet.registry import Registry
+    rows, summary = run_eval(Registry.load(), args.file)
+    text = render_report(rows, summary)
+    with open(args.out, "w", encoding="utf-8") as f:
+        f.write(text + "\n")
+    print(text.split("\n## 逐条")[0])
+    print(f"完整报告：{args.out}")
+
+
+def cmd_induce(args) -> None:
+    from capnet.registry import Registry
+    from capnet.traces import induce, load_traces
+    res = induce(load_traces(args.traces), existing=Registry.load().workflows,
+                 min_support=args.min_support)
+    if not res:
+        print("没有达到支持度门槛的模式。")
+    for r in res:
+        tag = f"强化已有 {r.reinforces}" if r.reinforces else "新工作流草稿"
+        print(f"[{tag}] {r.workflow.name}  支持 {r.support} 人 · 接受率 {r.success_rate:.0%}")
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="capnet: 能力卡注册表与打分路由")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -254,6 +299,24 @@ def main() -> None:
     sp = sub.add_parser("gaps", help="能力缺口聚合：注册表答不出来的查询，按频次排序")
     sp.add_argument("--file", default=GAPS)
     sp.set_defaults(fn=cmd_gaps)
+
+    sp = sub.add_parser("plan", help="复杂任务 -> 成熟工作流 -> 逐阶段方法 + 工具填槽")
+    sp.add_argument("query")
+    sp.add_argument("--k", type=int, default=3)
+    sp.add_argument("--max-cost", type=float, default=None)
+    sp.add_argument("--out", default=None, help="把 Markdown 计划写入文件")
+    sp.add_argument("--trace", action="store_true", help="附带待上报的轨迹模板")
+    sp.set_defaults(fn=cmd_plan)
+
+    sp = sub.add_parser("eval", help="批量领域问题评测：工作流命中、槽位覆盖、缺口识别")
+    sp.add_argument("--file", default=os.path.join(BASE, "data", "eval", "queries.json"))
+    sp.add_argument("--out", default=os.path.join(BASE, "data", "eval", "report.md"))
+    sp.set_defaults(fn=cmd_eval)
+
+    sp = sub.add_parser("induce", help="从轨迹 JSONL 归纳工作流草稿")
+    sp.add_argument("traces")
+    sp.add_argument("--min-support", type=int, default=3)
+    sp.set_defaults(fn=cmd_induce)
 
     args = p.parse_args()
     args.fn(args)
