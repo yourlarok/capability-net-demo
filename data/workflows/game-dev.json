@@ -1,0 +1,18 @@
+{
+  "workflow_id": "game-dev",
+  "name": "游戏开发（概念到可玩版本）",
+  "industry": "entertainment/game",
+  "source": {"kind": "practice-summary", "derived_from": "game-concept / game-world-design / game-build / game-qa skills 链"},
+  "stages": [
+    {"id": "concept", "name": "概念选型", "slots": []},
+    {"id": "design", "name": "世界与系统设计", "slots": []},
+    {"id": "assets", "name": "资产生产", "slots": [
+      {"slot_id": "image.sprite", "domain": "image.sprite", "original_tool": "game-art-direction 指定风格后人工出图", "replacement_query": "domain:image.sprite outputs:png", "constraints": {"style_consistency_with": ["design"], "transparent_bg": true}},
+      {"slot_id": "audio.bgm", "domain": "audio.music", "original_tool": "", "replacement_query": "domain:audio.music", "constraints": {"loop": true, "length_sec": 60}},
+      {"slot_id": "audio.sfx", "domain": "audio.sfx", "original_tool": "", "replacement_query": "domain:audio.sfx", "constraints": {"count": "3-5"}}
+    ]},
+    {"id": "build", "name": "构建可玩版本", "slots": []},
+    {"id": "qa", "name": "证据化验证", "slots": []}
+  ],
+  "completion_signals": ["game-qa 出具真实渲染/输入/核心循环证据", "资产全部来自选中能力卡而非代码模拟"]
+}

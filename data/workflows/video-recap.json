@@ -1,0 +1,18 @@
+{
+  "workflow_id": "video-recap",
+  "name": "视频解说 recap 生产",
+  "industry": "content/video-recap",
+  "source": {"kind": "practice-summary", "derived_from": "video-understanding / video-script / video-cut / video-voiceover / video-assemble skills 链"},
+  "stages": [
+    {"id": "understand", "name": "视频理解（场景/ASR/VLM）", "slots": []},
+    {"id": "script", "name": "解说策划与写作", "slots": []},
+    {"id": "cut", "name": "剪辑", "slots": [
+      {"slot_id": "video.edit", "domain": "video.edit", "original_tool": "ffmpeg 剪辑", "replacement_query": "domain:video.edit", "constraints": {"lossless_cut": true}}
+    ]},
+    {"id": "voiceover", "name": "配音", "slots": [
+      {"slot_id": "audio.tts", "domain": "audio.tts", "original_tool": "MiMo TTS / Fish Audio", "replacement_query": "domain:audio.tts", "constraints": {"language": "zh", "time_fit": true}}
+    ]},
+    {"id": "assemble", "name": "混音与字幕合成", "slots": []}
+  ],
+  "completion_signals": ["成片音画同步", "字幕与旁白时间窗一致", "响度达标"]
+}

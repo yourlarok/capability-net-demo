@@ -1,0 +1,22 @@
+{
+  "workflow_id": "short-drama-episode",
+  "name": "短剧/漫剧单集生产",
+  "industry": "content/short-drama",
+  "source": {"kind": "practice-summary", "derived_from": "short-drama-* skills 链（write/assets/storyboard/image-prompts/video-prompts/produce/review）"},
+  "stages": [
+    {"id": "script", "name": "单集剧本", "slots": []},
+    {"id": "assets", "name": "视觉资产设定", "slots": []},
+    {"id": "storyboard", "name": "分镜与连续性边界", "slots": []},
+    {"id": "keyframe", "name": "冻结关键帧", "slots": [
+      {"slot_id": "image.keyframe", "domain": "image.gen", "original_tool": "GPT-Image 类文生图", "replacement_query": "domain:image.gen outputs:png", "constraints": {"style_consistency_with": ["assets", "storyboard"], "character_lock": true}}
+    ]},
+    {"id": "motion", "name": "图生视频", "slots": [
+      {"slot_id": "video.i2v", "domain": "video.img2video", "original_tool": "可灵/Runway 类", "replacement_query": "domain:video.img2video inputs:png", "constraints": {"input_from": "keyframe", "duration_sec": "5-10"}}
+    ]},
+    {"id": "voice", "name": "配音", "slots": [
+      {"slot_id": "audio.tts", "domain": "audio.tts", "original_tool": "MiMo TTS / Fish Audio", "replacement_query": "domain:audio.tts", "constraints": {"language": "zh", "lipsync_with": "motion"}}
+    ]},
+    {"id": "assemble", "name": "合成", "slots": []}
+  ],
+  "completion_signals": ["成片通过 review", "关键帧与分镜的连续性边界无冲突"]
+}

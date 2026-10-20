@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+# 可再生成的注册表产物：由适配器命令重建（见 README「注册表扩容」）
+data/registry.db
+data/registry.db-wal
+data/registry.db-shm
+data/registry.db.mcp_cursor
+data/registry.db.hf_done
+data/registry_drafts/

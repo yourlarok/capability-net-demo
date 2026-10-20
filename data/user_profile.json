@@ -1,0 +1,25 @@
+{
+  "user": "zhangyang694",
+  "industries": [
+    "content/short-drama",
+    "content/webnovel",
+    "content/video-recap",
+    "entertainment/game"
+  ],
+  "domain_weights": {
+    "image.sprite": 1.0,
+    "image.gen": 1.0,
+    "image.concept": 0.9,
+    "video.text2video": 1.0,
+    "video.img2video": 1.0,
+    "video.edit": 0.9,
+    "audio.tts": 1.0,
+    "audio.music": 0.9,
+    "audio.sfx": 0.9,
+    "text.writing": 0.9,
+    "3d.mesh": 0.5,
+    "devtools.*": 0.3
+  },
+  "boost_max": 0.15,
+  "_notes": "领域画像：短剧/漫剧、网文、视频解说、游戏（依据用户 skills 生态）。权重 ∈ [0,1]，路由乘子 = 1 + boost_max*w，有界可关闭。"
+}

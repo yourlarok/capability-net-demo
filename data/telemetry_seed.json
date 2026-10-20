@@ -1,0 +1,19 @@
+{
+  "img.megaimage":  {"exposures": 5200, "selections": 2080, "successes": 1200, "failures": 880, "approvals": 900, "rating_sum": 960, "rating_count": 300},
+  "img.pixelforge": {"exposures": 260, "selections": 90, "successes": 78, "failures": 12, "approvals": 60, "rating_sum": 184, "rating_count": 40},
+  "img.sdcomfy":    {"exposures": 900, "selections": 280, "successes": 205, "failures": 75, "approvals": 130, "rating_sum": 351, "rating_count": 90},
+  "img.spritewave": {"exposures": 6, "selections": 1, "successes": 1, "failures": 0, "approvals": 1, "rating_sum": 0, "rating_count": 0},
+  "img.gptimage":   {"exposures": 1500, "selections": 600, "successes": 510, "failures": 90, "approvals": 380, "rating_sum": 860, "rating_count": 200},
+  "img.mj":         {"exposures": 2000, "selections": 700, "successes": 580, "failures": 120, "approvals": 420, "rating_sum": 1125, "rating_count": 250},
+  "vid.kling":      {"exposures": 800, "selections": 260, "successes": 195, "failures": 65, "approvals": 140, "rating_sum": 320, "rating_count": 80},
+  "vid.runway":     {"exposures": 1100, "selections": 350, "successes": 280, "failures": 70, "approvals": 190, "rating_sum": 451, "rating_count": 110},
+  "vid.wanlocal":   {"exposures": 150, "selections": 40, "successes": 28, "failures": 12, "approvals": 15, "rating_sum": 43, "rating_count": 12},
+  "vid.unstable":   {"exposures": 3000, "selections": 1200, "successes": 1100, "failures": 100, "approvals": 800, "rating_sum": 1000, "rating_count": 220},
+  "tts.mimo":       {"exposures": 600, "selections": 240, "successes": 205, "failures": 35, "approvals": 150, "rating_sum": 294, "rating_count": 70},
+  "tts.fish":       {"exposures": 900, "selections": 330, "successes": 270, "failures": 60, "approvals": 180, "rating_sum": 410, "rating_count": 100},
+  "tts.eleven":     {"exposures": 1300, "selections": 430, "successes": 375, "failures": 55, "approvals": 300, "rating_sum": 752, "rating_count": 160},
+  "mus.suno":       {"exposures": 700, "selections": 210, "successes": 160, "failures": 50, "approvals": 110, "rating_sum": 240, "rating_count": 60},
+  "mus.musicgen":   {"exposures": 300, "selections": 70, "successes": 42, "failures": 28, "approvals": 20, "rating_sum": 62, "rating_count": 20},
+  "sfx.freesound":  {"exposures": 400, "selections": 150, "successes": 110, "failures": 40, "approvals": 70, "rating_sum": 152, "rating_count": 40},
+  "mesh.tripo":     {"exposures": 350, "selections": 110, "successes": 82, "failures": 28, "approvals": 50, "rating_sum": 117, "rating_count": 30}
+}

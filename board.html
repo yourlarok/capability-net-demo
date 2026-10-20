@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>capnet 能力选择板</title><style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; margin: 0; }
+body { background: #0d1117; color: #e6edf3; font: 15px/1.6 -apple-system, "PingFang SC", sans-serif; }
+main { max-width: 1180px; margin: 0 auto; padding: 40px 24px 80px; }
+h1 { font-size: 26px; letter-spacing: 1px; }
+.sub { color: #8b949e; margin: 6px 0 36px; }
+.board { margin-bottom: 48px; }
+.board > h2 { font-size: 18px; margin-bottom: 4px; }
+.board > h2::before { content: "能力缺口 · "; color: #8b949e; font-weight: 400; }
+.funnel { color: #8b949e; font-size: 13px; margin-bottom: 16px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.card {
+  --hue: 210;
+  background: #161b22; border: 1px solid #2d333b; border-radius: 14px;
+  padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 10px;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,.45); }
+.card.rec { border-color: hsl(var(--hue) 70% 55%); box-shadow: 0 0 0 1px hsl(var(--hue) 70% 55% / .5), 0 6px 24px hsl(var(--hue) 70% 45% / .15); }
+.card header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.card h3 { font-size: 17px; }
+.badge { font-size: 11px; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.badge.rec { background: hsl(var(--hue) 70% 45% / .2); color: hsl(var(--hue) 90% 65%); border: 1px solid hsl(var(--hue) 70% 55% / .6); }
+.badge.new { background: #d2992230; color: #e3b341; border: 1px solid #d2992266; }
+.domain { font-size: 12px; color: hsl(var(--hue) 60% 65%); font-family: ui-monospace, monospace; }
+.desc { color: #b1bac4; font-size: 13.5px; flex: 1; }
+.score { display: flex; align-items: center; gap: 10px; }
+.score b { font-size: 15px; min-width: 44px; text-align: right; }
+.bar { flex: 1; height: 8px; background: #2d333b; border-radius: 999px; overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, hsl(var(--hue) 80% 45%), hsl(var(--hue) 90% 62%)); }
+.comps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.comp { font-size: 11px; color: #8b949e; }
+.comp .bar { height: 5px; margin-top: 3px; }
+.comp b { color: #c9d1d9; font-weight: 600; }
+footer { display: flex; flex-wrap: wrap; gap: 6px; border-top: 1px solid #2d333b; padding-top: 10px; }
+.chip { font-size: 11.5px; color: #9da7b3; background: #21262d; border-radius: 6px; padding: 2px 8px; }
+footer .chip:first-child { color: #f0f6fc; }
+</style></head>
+<body><main>
+<h1>capnet 能力选择板</h1>
+<p class="sub">3 个能力缺口 · 注册表 17 张卡 · 生成于 2026-10-20 13:38:34</p>
+<section class="board"><h2>给游戏画像素风角色精灵图</h2><p class="funnel">漏斗：注册表 17 → 过滤 16 → 召回 12 → 呈现 3</p><div class="cards">
+  <article class="card rec" style="--hue:244">
+    <header><h3>PixelForge Local</h3><span><span class="badge rec">推荐</span></span></header>
+    <div class="domain">image.sprite · community</div>
+    <p class="desc">本地像素风 sprite 专用模型，专精游戏精灵图与 tileset，零成本</p>
+    <div class="score"><div class="bar"><i style="width:45.5%"></i></div><b>0.455</b></div>
+    <div class="comps"><div class="comp">Q 质量 <b>0.78</b><div class="bar"><i style="width:78%"></i></div></div><div class="comp">R 认可 <b>0.76</b><div class="bar"><i style="width:76%"></i></div></div><div class="comp">C 效率 <b>0.29</b><div class="bar"><i style="width:29%"></i></div></div><div class="comp">U 探索 <b>0.31</b><div class="bar"><i style="width:16%"></i></div></div></div>
+    <footer>
+      <span class="chip">0.0/次</span>
+      <span class="chip">fast</span>
+      <span class="chip">90 次调用</span>
+    </footer>
+  </article>
+  <article class="card" style="--hue:244">
+    <header><h3>SpriteWave</h3><span><span class="badge new">新卡·探索性试用</span></span></header>
+    <div class="domain">image.sprite · SpriteWave Inc</div>
+    <p class="desc">新入驻的 sprite 生成服务，像素与卡通风格专项优化</p>
+    <div class="score"><div class="bar"><i style="width:34.3%"></i></div><b>0.343</b></div>
+    <div class="comps"><div class="comp">Q 质量 <b>0.21</b><div class="bar"><i style="width:21%"></i></div></div><div class="comp">R 认可 <b>0.52</b><div class="bar"><i style="width:52%"></i></div></div><div class="comp">C 效率 <b>0.03</b><div class="bar"><i style="width:3%"></i></div></div><div class="comp">U 探索 <b>2.11</b><div class="bar"><i style="width:100%"></i></div></div></div>
+    <footer>
+      <span class="chip">0.01/次</span>
+      <span class="chip">fast</span>
+      <span class="chip">1 次调用</span>
+    </footer>
+  </article>
+  <article class="card" style="--hue:244">
+    <header><h3>MegaImage Cloud</h3><span></span></header>
+    <div class="domain">image.sprite · MegaCorp</div>
+    <p class="desc">营销投入很大的全能云绘图平台，支持 sprite 生成，市场占有率高</p>
+    <div class="score"><div class="bar"><i style="width:31.8%"></i></div><b>0.318</b></div>
+    <div class="comps"><div class="comp">Q 质量 <b>0.56</b><div class="bar"><i style="width:56%"></i></div></div><div class="comp">R 认可 <b>0.54</b><div class="bar"><i style="width:54%"></i></div></div><div class="comp">C 效率 <b>0.39</b><div class="bar"><i style="width:39%"></i></div></div><div class="comp">U 探索 <b>0.07</b><div class="bar"><i style="width:3%"></i></div></div></div>
+    <footer>
+      <span class="chip">0.04/次</span>
+      <span class="chip">medium</span>
+      <span class="chip">2080 次调用</span>
+    </footer>
+  </article></div></section><section class="board"><h2>像素风游戏的循环背景音乐</h2><p class="funnel">漏斗：注册表 17 → 过滤 16 → 召回 11 → 呈现 3</p><div class="cards">
+  <article class="card rec" style="--hue:267">
+    <header><h3>MusicGen Local</h3><span><span class="badge rec">推荐</span></span></header>
+    <div class="domain">audio.music · local</div>
+    <p class="desc">本地音乐生成，纯器乐 BGM，免费</p>
+    <div class="score"><div class="bar"><i style="width:21.0%"></i></div><b>0.210</b></div>
+    <div class="comps"><div class="comp">Q 质量 <b>0.48</b><div class="bar"><i style="width:48%"></i></div></div><div class="comp">R 认可 <b>0.47</b><div class="bar"><i style="width:48%"></i></div></div><div class="comp">C 效率 <b>0.19</b><div class="bar"><i style="width:19%"></i></div></div><div class="comp">U 探索 <b>0.35</b><div class="bar"><i style="width:18%"></i></div></div></div>
+    <footer>
+      <span class="chip">0.0/次</span>
+      <span class="chip">medium</span>
+      <span class="chip">70 次调用</span>
+    </footer>
+  </article>
+  <article class="card" style="--hue:244">
+    <header><h3>PixelForge Local</h3><span></span></header>
+    <div class="domain">image.sprite · community</div>
+    <p class="desc">本地像素风 sprite 专用模型，专精游戏精灵图与 tileset，零成本</p>
+    <div class="score"><div class="bar"><i style="width:20.9%"></i></div><b>0.209</b></div>
+    <div class="comps"><div class="comp">Q 质量 <b>0.78</b><div class="bar"><i style="width:78%"></i></div></div><div class="comp">R 认可 <b>0.76</b><div class="bar"><i style="width:76%"></i></div></div><div class="comp">C 效率 <b>0.29</b><div class="bar"><i style="width:29%"></i></div></div><div class="comp">U 探索 <b>0.31</b><div class="bar"><i style="width:16%"></i></div></div></div>
+    <footer>
+      <span class="chip">0.0/次</span>
+      <span class="chip">fast</span>
+      <span class="chip">90 次调用</span>
+    </footer>
+  </article>
+  <article class="card" style="--hue:244">
+    <header><h3>SpriteWave</h3><span><span class="badge new">新卡·探索性试用</span></span></header>
+    <div class="domain">image.sprite · SpriteWave Inc</div>
+    <p class="desc">新入驻的 sprite 生成服务，像素与卡通风格专项优化</p>
+    <div class="score"><div class="bar"><i style="width:16.0%"></i></div><b>0.160</b></div>
+    <div class="comps"><div class="comp">Q 质量 <b>0.21</b><div class="bar"><i style="width:21%"></i></div></div><div class="comp">R 认可 <b>0.52</b><div class="bar"><i style="width:52%"></i></div></div><div class="comp">C 效率 <b>0.03</b><div class="bar"><i style="width:3%"></i></div></div><div class="comp">U 探索 <b>2.11</b><div class="bar"><i style="width:100%"></i></div></div></div>
+    <footer>
+      <span class="chip">0.01/次</span>
+      <span class="chip">fast</span>
+      <span class="chip">1 次调用</span>
+    </footer>
+  </article></div></section><section class="board"><h2>跳跃金币受伤的游戏音效</h2><p class="funnel">漏斗：注册表 17 → 过滤 16 → 召回 11 → 呈现 3</p><div class="cards">
+  <article class="card rec" style="--hue:168">
+    <header><h3>FreeSFX Search</h3><span><span class="badge rec">推荐</span></span></header>
+    <div class="domain">audio.sfx · community</div>
+    <p class="desc">音效库检索下载，非生成式，覆盖面广</p>
+    <div class="score"><div class="bar"><i style="width:31.5%"></i></div><b>0.315</b></div>
+    <div class="comps"><div class="comp">Q 质量 <b>0.66</b><div class="bar"><i style="width:66%"></i></div></div><div class="comp">R 认可 <b>0.61</b><div class="bar"><i style="width:61%"></i></div></div><div class="comp">C 效率 <b>0.33</b><div class="bar"><i style="width:33%"></i></div></div><div class="comp">U 探索 <b>0.24</b><div class="bar"><i style="width:12%"></i></div></div></div>
+    <footer>
+      <span class="chip">0.0/次</span>
+      <span class="chip">fast</span>
+      <span class="chip">150 次调用</span>
+    </footer>
+  </article>
+  <article class="card" style="--hue:244">
+    <header><h3>PixelForge Local</h3><span></span></header>
+    <div class="domain">image.sprite · community</div>
+    <p class="desc">本地像素风 sprite 专用模型，专精游戏精灵图与 tileset，零成本</p>
+    <div class="score"><div class="bar"><i style="width:22.7%"></i></div><b>0.227</b></div>
+    <div class="comps"><div class="comp">Q 质量 <b>0.78</b><div class="bar"><i style="width:78%"></i></div></div><div class="comp">R 认可 <b>0.76</b><div class="bar"><i style="width:76%"></i></div></div><div class="comp">C 效率 <b>0.29</b><div class="bar"><i style="width:29%"></i></div></div><div class="comp">U 探索 <b>0.31</b><div class="bar"><i style="width:16%"></i></div></div></div>
+    <footer>
+      <span class="chip">0.0/次</span>
+      <span class="chip">fast</span>
+      <span class="chip">90 次调用</span>
+    </footer>
+  </article>
+  <article class="card" style="--hue:244">
+    <header><h3>SpriteWave</h3><span><span class="badge new">新卡·探索性试用</span></span></header>
+    <div class="domain">image.sprite · SpriteWave Inc</div>
+    <p class="desc">新入驻的 sprite 生成服务，像素与卡通风格专项优化</p>
+    <div class="score"><div class="bar"><i style="width:19.9%"></i></div><b>0.199</b></div>
+    <div class="comps"><div class="comp">Q 质量 <b>0.21</b><div class="bar"><i style="width:21%"></i></div></div><div class="comp">R 认可 <b>0.52</b><div class="bar"><i style="width:52%"></i></div></div><div class="comp">C 效率 <b>0.03</b><div class="bar"><i style="width:3%"></i></div></div><div class="comp">U 探索 <b>2.11</b><div class="bar"><i style="width:100%"></i></div></div></div>
+    <footer>
+      <span class="chip">0.01/次</span>
+      <span class="chip">fast</span>
+      <span class="chip">1 次调用</span>
+    </footer>
+  </article></div></section>
+</main></body></html>
