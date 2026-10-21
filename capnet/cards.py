@@ -43,6 +43,7 @@ class AppCard:
     popularity: dict = field(default_factory=dict)
     value_evidence: str = ""
     healthy: bool = True
+    markets: list[str] = field(default_factory=list)  # 适用市场：cn / global …；空 = 不限
     review_status: str = "approved"  # draft = 适配器产出待评审，approved 才可入主注册表
     true_quality: float = 0.5  # 仅供模拟器抽样，路由侧不可见
 
@@ -67,6 +68,7 @@ class Card:
     app_id: str = ""
     extras: dict = field(default_factory=dict)  # 源特有字段（mcp_remotes / hf_pipeline 等）
     popularity: dict = field(default_factory=dict)  # 源外部流行度，作冷启动认可度先验
+    markets: list[str] = field(default_factory=list)
 
     @property
     def searchable_text(self) -> str:
@@ -103,6 +105,7 @@ def flatten(app: AppCard) -> list[Card]:
             app_id=app.app_id,
             extras=cap.extras,
             popularity=app.popularity,
+            markets=app.markets,
         ))
     return out
 

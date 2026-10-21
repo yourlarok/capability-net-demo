@@ -13,7 +13,7 @@
    "value_evidence": "AI 绘画领域头部，概念设计/插画常用产出工具",
    "capabilities": [{"domain": "image.gen", "intents": ["midjourney", "mj", "ai绘画", "插画", "概念图", "原画", "出图", "art"], "inputs": ["text"], "outputs": ["image"], "accessibility": "gui", "cost_per_call": 0.05, "latency": "medium"}]},
 
-  {"app_id": "pro.dreamina", "name": "即梦", "vendor": "字节跳动",
+  {"app_id": "pro.dreamina", "markets": ["cn"], "name": "即梦", "vendor": "字节跳动",
    "description": "字节 AI 创作平台：文生图/图生图/文生视频，中文提示词友好，国内直连。需人工操作。",
    "platforms": ["web"], "pricing": {"model": "freemium", "note": "积分制"},
    "popularity": {"source": "curated-estimate", "users": 8000000, "reviews": null, "normalized": 0.85},
@@ -85,7 +85,7 @@
    "value_evidence": "调色事实标准，剪辑快速增长",
    "capabilities": [{"domain": "video.edit", "intents": ["davinci", "达芬奇", "剪辑", "调色", "后期"], "inputs": ["video", "audio"], "outputs": ["video"], "accessibility": "gui", "cost_per_call": 0.0, "latency": "slow"}]},
 
-  {"app_id": "pro.capcut", "name": "剪映专业版", "vendor": "字节跳动",
+  {"app_id": "pro.capcut", "markets": ["cn", "global"], "name": "剪映专业版", "vendor": "字节跳动",
    "description": "国民级剪辑工具：字幕、配音、模板、特效一体，短视频/短剧二创主力。需人工操作。",
    "platforms": ["windows", "mac", "web"], "pricing": {"model": "freemium"},
    "popularity": {"source": "curated-estimate", "users": 300000000, "reviews": null, "normalized": 1.0},
@@ -99,7 +99,7 @@
    "value_evidence": "AI 视频头部，影视预演/广告常用",
    "capabilities": [{"domain": "video.gen", "intents": ["runway", "gen-3", "ai视频", "文生视频", "图生视频", "视频生成"], "inputs": ["text", "image"], "outputs": ["video"], "accessibility": "gui", "cost_per_call": 0.25, "latency": "medium"}]},
 
-  {"app_id": "pro.kling", "name": "可灵", "vendor": "快手",
+  {"app_id": "pro.kling", "markets": ["cn", "global"], "name": "可灵", "vendor": "快手",
    "description": "快手 AI 视频生成，中文场景与人物动作表现强，国内直连。需人工操作（有开放平台 API）。",
    "platforms": ["web", "api"], "pricing": {"model": "per-call", "note": "会员/点数制"},
    "popularity": {"source": "curated-estimate", "users": 6000000, "reviews": null, "normalized": 0.85},
@@ -134,7 +134,7 @@
    "value_evidence": "TTS/声音克隆质量标杆",
    "capabilities": [{"domain": "audio.tts", "intents": ["elevenlabs", "11labs", "配音", "tts", "声音克隆", "语音合成", "旁白"], "inputs": ["text"], "outputs": ["audio"], "accessibility": "gui", "cost_per_call": 0.01, "latency": "fast"}]},
 
-  {"app_id": "pro.moyin", "name": "魔音工坊", "vendor": "出门问问",
+  {"app_id": "pro.moyin", "markets": ["cn"], "name": "魔音工坊", "vendor": "出门问问",
    "description": "国产 AI 配音平台，中文音色与情绪丰富，短视频配音常用。需人工操作。",
    "platforms": ["web"], "pricing": {"model": "subscription"},
    "popularity": {"source": "curated-estimate", "users": 2000000, "reviews": null, "normalized": 0.7},
@@ -232,7 +232,7 @@
    "value_evidence": "文字渲染最强的 AI 绘画平台",
    "capabilities": [{"domain": "image.gen", "intents": ["ideogram", "海报", "封面", "文字渲染", "ai绘画", "标题字"], "inputs": ["text"], "outputs": ["image"], "accessibility": "gui", "cost_per_call": 0.04, "latency": "medium"}]},
 
-  {"app_id": "pro.hailuo", "name": "海螺视频", "vendor": "MiniMax",
+  {"app_id": "pro.hailuo", "markets": ["cn", "global"], "name": "海螺视频", "vendor": "MiniMax",
    "description": "MiniMax AI 视频生成，人物表情与运镜自然。需人工操作。",
    "platforms": ["web"], "pricing": {"model": "freemium"},
    "popularity": {"source": "curated-estimate", "users": 4000000, "reviews": null, "normalized": 0.75},

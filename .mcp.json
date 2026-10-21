@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "capnet": {
+      "command": "python",
+      "args": ["demo.py", "mcp"]
+    }
+  }
+}

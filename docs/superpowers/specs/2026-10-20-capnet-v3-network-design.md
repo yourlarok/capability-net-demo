@@ -33,10 +33,10 @@ Trace       一次真实执行：有序步骤[(stage, domain, entry, ok, retries
 
 ## 设计原则
 
-1. **贡献 = 副产品。** 上报靠 hook 自动完成（任务结束时 agent 调 `report_outcome`），用户无感。
-   隐式信号优先于显式评分：重试次数、被替换、返工、放弃、下游直接复用，比五星评分诚实得多。
-2. **只传结构，不传内容。** 轨迹里只有领域、条目 id、成败、重试、成本；任务原文本地保留，
-   贡献者只存盐化哈希（`redact()`）。这是别人愿意接入的前提。
+1. **贡献 = 副产品，但必须征得同意。** 任务结束时 agent 按 capnet skill 汇总思路，原样展示预览，
+   用户同意才上传（用户决策 2026-10-20）。隐式信号优先于显式评分：重试次数、被替换、返工、放弃，比五星评分诚实得多。
+2. **只传客观思路，不传内容。** 轨迹 = 问题类型 + 步骤(领域/工具/成败/重试/方法一句话) + 经验；
+   任务原文、产出、成本金额、精确时间一律不传，贡献者只是随机安装 id 的哈希。
 3. **支持度按独立贡献者计。** 一个人刷 1 万次也只算 1（已实现）。后续叠加贡献者信誉权重、
    厂商自荐检测（某卡的好评过度集中在少数账号 → 降权）。
 4. **槽位是类型签名。** 换工具 = 类型检查：输出类型匹配 + 不变量（如 `character_lock`）可满足 +
@@ -46,15 +46,15 @@ Trace       一次真实执行：有序步骤[(stage, domain, entry, ok, retries
 6. **工作流像 git 一样有谱系。** 归纳出的变体是 fork，同构轨迹强化原工作流（`reinforces`），
    每个工作流可追溯到支持它的轨迹集合。
 7. **协议先于平台。** 对外暴露为一个 MCP server，任何 agent（Claude Code / Cursor / 自研）即插即用：
-   `find_workflow(task)` · `find_capability(slot)` · `report_outcome(trace)` · `propose_workflow(draft)`。
+   `plan_task` · `find_capability` · `list_workflows` · `get_workflow` · `summarize_trace` · `submit_trace`（已实现）。
    分发渠道 = MCP 生态本身。
-8. **给予即获得（give-to-get）。** 上报轨迹的接入者获得完整路由与私有工作流库；只读不报的拿降级结果。
-   这把"为你创造输入"变成接入者自己的利益。
+8. **路由对所有人完整开放，上传完全自愿（用户决策 2026-10-20，取代早先的 give-to-get 设想）。**
+   网络靠"好用"吸引接入，靠低摩擦、可信的隐私处理让一部分用户愿意回馈；不以降级逼迫上传。
 
 ## 飞轮
 
 ```
-接入者的 agent 调 find_workflow → 按工作流执行 → hook 自动 report_outcome
+接入者的 agent 调 plan_task → 按工作流执行 → summarize_trace 预览 → 用户同意 → submit_trace
    → credit() 更新工具口碑  → induce() 产出/强化工作流  → gaps 记录答不出的任务
    → 下一位接入者拿到更准的路由（冷启动更短）→ 更多人接入
 ```
@@ -71,10 +71,12 @@ Trace       一次真实执行：有序步骤[(stage, domain, entry, ok, retries
 ## 路线
 
 - **P0（本次已做）**：Trace 模型 + credit + induce + 脱敏 + 支持度防刷；修复 v1 http 卡误标"人工使用"。
-- **P1**：`report_outcome` 落库（store.events 直写），Claude Code Stop hook 自动从会话生成 Trace 草稿。
-- **P2**：MCP server 封装四个接口；槽位契约 + 换卡类型检查。
+- **P1（已做）**：规划器、行业工作流、业务目录、三套批量评测。
+- **P2（已做）**：MCP server（6 工具）、capnet skill、隐私清理、两段式同意上传、hub（HTTP/本地）、
+  轨迹事件回流打分、归纳草稿 + `promote` 评审入库、市场上下文。
+- **P2.5**：槽位契约 + 换卡类型检查；英文/跨语言召回（embedding）。
 - **P3**：位置去偏的 C（或改用 Q/R 为主）、按领域的 UCB 与探索预算、种子统计带时间戳参与衰减。
-- **P4**：多接入者：信誉权重、联邦同步、give-to-get 权限。
+- **P4**：多接入者：贡献者信誉权重、厂商自荐检测、多 hub 联邦同步。
 
 ## 批量评测结论（2026-10-20，实现后）
 
@@ -97,3 +99,23 @@ Trace       一次真实执行：有序步骤[(stage, domain, entry, ok, retries
 - **无市场/地域上下文**：中国公司的抖音场景，A/B 槽仍列出 Meta Ads（冷启动流行度先验主导）→ 卡加 `markets`、画像加市场，作为上下文乘子。
 - **营销槽位自动化率只有 ~45%**：国内数据/投放平台几乎全是封闭 GUI。这本身是机会：给这些平台做 MCP/浏览器自动化适配器，是网络里价值密度最高的补位。
 - dev/holdout 的 intents 与题目同一作者，数字偏乐观；blind 90% 更接近真实，需要真实用户的提问日志来校准。
+
+## 上传与隐私（P2 实现）
+
+```
+agent 整理执行记录 ──summarize_trace──▶ 本地清理 + 预览 + 指纹(preview_id)，存 ~/.capnet/pending/
+                                         │ 原样展示给用户（含"已清理"清单与 ⚠ 残留风险提示）
+              用户拒绝 ◀─────────────────┤
+   submit(consent=false) 删除预览         │ 用户同意
+                                         ▼
+                        submit(preview_id, consent=true)
+                        └ 重新计算指纹，与 preview_id 不符（被改过）→ 拒绝
+                        └ CAPNET_HUB_URL 有值 → POST /v1/traces；否则写本机 hub
+hub.ingest：服务端再清理一遍（不信任客户端）→ 指纹去重 → traces.jsonl + events.jsonl
+Registry.load 读 events.jsonl → 上传的轨迹直接影响路由打分
+hub refresh → induce → data/workflows_drafts/ → 人工评审 → promote 入正式库
+```
+
+清理规则（`capnet/privacy.py`）：密钥、邮箱、链接、证件号、卡号、手机/座机、IP、路径、@账号、金额、《作品名》、
+常见姓氏+称谓、用户私有词表（`~/.capnet/private_terms.txt`）；注册表外的工具名置空；文本限长；时间截到天。
+规则不能识别任意人名/机构名，因此"原样展示 + 明确同意"是不可省略的第二道防线；残留风险以 ⚠ 提示给用户。

@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from .registry import Registry
@@ -17,6 +18,7 @@ from .search import RankedCard, as_options, search
 from .traces import Step, Trace
 from .workflows import Slot, Stage, Workflow, find_workflows
 
+MARKET_MISMATCH = 0.5  # 卡声明的市场不含当前市场时的乘子（如国内场景下的 Meta Ads）
 MIN_WORKFLOW_RELEVANCE = 0.10  # 实义证据门槛（workflows.evidence）负责拒识，这里只是兜底下限
 
 
@@ -83,7 +85,8 @@ class Plan:
                                   entry_id=f.options[0]["value"] if f.options else ""))
         return Trace(contributor=contributor,
                      industry=self.workflow.industry if self.workflow else "", steps=steps,
-                     accepted=False, task=self.query)
+                     accepted=False, task=self.query,
+                     workflow_id=self.workflow.workflow_id if self.workflow else "")
 
 
 def _options(ranked: list[RankedCard], k: int) -> list[dict]:
@@ -95,15 +98,30 @@ def _options(ranked: list[RankedCard], k: int) -> list[dict]:
     return opts
 
 
-def fill_slot(reg: Registry, slot: Slot, ctx: ScoreContext, k: int = 3) -> SlotFill:
+def infer_market(query: str) -> str:
+    """无显式市场时按查询语言推断：含中文 → cn，否则 global。"""
+    return "cn" if re.search(r"[一-鿿]", query) else "global"
+
+
+def market_fit(card, market: str | None) -> float:
+    if not market or not card.markets:
+        return 1.0
+    return 1.0 if market in card.markets else MARKET_MISMATCH
+
+
+def fill_slot(reg: Registry, slot: Slot, ctx: ScoreContext, k: int = 3,
+              market: str | None = None) -> SlotFill:
     """主 domain 先填；alt_domains 只在主 domain 不足 k 张时补位（防止相邻领域的高热度卡
-    抢占，如小说写作工具顶掉营销文案工具）。同一 app 只出现一次。"""
+    抢占，如小说写作工具顶掉营销文案工具）。同一 app 只出现一次；按市场适配降权。"""
     ranked: list[RankedCard] = []
     seen_apps: set[str] = set()
     for doms in ([slot.domain], slot.alt_domains):
         if len(ranked) >= k or not doms:
             break
-        trace = search(reg.in_domains(doms), reg.stats, None, ctx, k=k * 2, profile=reg.profile)
+        trace = search(reg.in_domains(doms), reg.stats, None, ctx, k=k * 3, profile=reg.profile)
+        for rc in trace.ranked:
+            rc.final *= market_fit(rc.card, market)
+        trace.ranked.sort(key=lambda x: -x.final)
         for rc in trace.ranked:
             app = rc.card.app_id or rc.card.id
             if app not in seen_apps and len(ranked) < k:
@@ -113,7 +131,9 @@ def fill_slot(reg: Registry, slot: Slot, ctx: ScoreContext, k: int = 3) -> SlotF
 
 
 def plan(query: str, reg: Registry, k: int = 3, max_cost: float | None = None,
-         min_relevance: float = MIN_WORKFLOW_RELEVANCE, task_type: str | None = None) -> Plan:
+         min_relevance: float = MIN_WORKFLOW_RELEVANCE, task_type: str | None = None,
+         market: str | None = None) -> Plan:
+    market = market or infer_market(query)
     ctx = ScoreContext(total_selections=reg.total_selections, max_cost=max_cost)
     cands = find_workflows(query, reg.workflows, k=3, task_type=task_type)
     alts = [(round(r, 3), w.workflow_id) for r, w in cands]
@@ -123,7 +143,7 @@ def plan(query: str, reg: Registry, k: int = 3, max_cost: float | None = None,
         return Plan(query=query, workflow=None, relevance=top, alternatives=alts,
                     fallback=[] if trace.gap else _options(trace.ranked, k))
     rel, wf = cands[0]
-    stages = [StagePlan(stage=st, fills=[fill_slot(reg, sl, ctx, k) for sl in st.slots])
+    stages = [StagePlan(stage=st, fills=[fill_slot(reg, sl, ctx, k, market) for sl in st.slots])
               for st in wf.stages]
     return Plan(query=query, workflow=wf, relevance=rel, alternatives=alts[1:], stages=stages)
 

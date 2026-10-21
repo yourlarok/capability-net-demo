@@ -1,4 +1,21 @@
-# capnet-demo：能力卡打分公式验证
+# capnet：能力与工作流路由网络
+
+任何 agent 接入即可得到完整路由：复杂任务 → 成熟工作流（阶段/方法/交付物/验收）→ 每步推荐工具
+（标明 agent 可调用 or 只能人工使用）。任务完成后可**自愿**上传"客观解决思路"：本地清理私有信息、
+原样预览、用户同意才上传；上传的轨迹回流到工具打分并归纳新工作流。上传与否不影响路由。
+
+## 接入（MCP）
+
+- 在本仓库目录打开 Claude Code：`.mcp.json` 自动注册 capnet MCP server，`.claude/skills/capnet` 提供使用规范。
+- 全局接入：`claude mcp add capnet -- python <仓库绝对路径>/demo.py mcp`，并把 `.claude/skills/capnet` 复制到 `~/.claude/skills/`。
+- 工具：`plan_task` / `find_capability` / `list_workflows` / `get_workflow` / `summarize_trace` / `submit_trace`。
+- 私有词表：`~/.capnet/private_terms.txt`（每行一个公司名/产品名/人名），汇总时自动替换。
+- 汇总端：`python demo.py hub serve --port 8765` 起 HTTP hub；客户端设 `CAPNET_HUB_URL=http://host:8765`，
+  不设则写本机 `data/hub/`（自托管）。`python demo.py hub refresh` 归纳草稿，`python demo.py promote <id>` 评审入库。
+
+---
+
+# 附：打分公式
 
 为 agent 能力注册表设计的打分公式 demo。要解决的问题：注册表几千张能力卡，
 路由排序不能让"高曝光平庸卡"永远霸榜，也不能让"冷启动好卡"永远没有出头之日，
@@ -45,6 +62,10 @@ python3 demo.py simulate --domain image.sprite --rounds 600 --explain  # 排名�
 python3 demo.py plan "产品宣传视频播放量很低，帮我出一个完善的视频改进计划"  # 任务 → 工作流 → 逐阶段方法 + 工具填槽
 python3 demo.py eval                                      # 批量领域评测（dev / holdout / blind 三套，见 data/eval/）
 python3 demo.py induce traces.jsonl                       # 从执行轨迹归纳工作流草稿
+python3 demo.py summarize draft.json                       # 执行记录 → 清理后的预览 + preview_id（不上传）
+python3 demo.py submit <preview_id> --yes                 # 用户同意后上传（--no 删除预览）
+python3 demo.py hub serve | refresh | stats               # 汇总端
+python3 demo.py mcp                                       # stdio MCP server
 python3 -m unittest discover -s tests -v                 # 测试（含 2 万条目性能压测）
 ```
 
@@ -68,6 +89,10 @@ capnet/registry.py   注册表门面：cards + pro_tools + catalog/*.json + 遥�
 capnet/planner.py    规划器：任务 → 工作流 → 填槽（主 domain 优先、按 app 去重）→ Markdown 计划 + 轨迹模板
 capnet/traces.py     执行轨迹：credit（拆遥测）/ induce（按独立贡献者归纳工作流）/ redact（脱敏）
 capnet/evaluate.py   批量领域评测：命中@1、域外拒识、槽位覆盖、自动化率
+capnet/privacy.py    隐私清理规则 + 私有词表 + 残留风险提示
+capnet/hub.py        两段式同意上传（指纹校验）+ 汇总端 ingest/refresh/HTTP 服务
+capnet/mcp_server.py stdio MCP server（零依赖 JSON-RPC）
+.claude/skills/capnet/SKILL.md  agent 使用规范：何时路由、人工工具边界、如何汇总思路、必须征得同意
 capnet/gaps.py       能力缺口日志：特征词无命中的查询落盘聚合，驱动策展/适配器扩容
 capnet/adapters/mcp_registry.py  MCP 官方 registry 适配器（产出草稿卡待评审，可直写 --db）
 capnet/adapters/huggingface.py   HuggingFace Hub 适配器（pipeline_tag 权威分域 + 下载量门槛，
