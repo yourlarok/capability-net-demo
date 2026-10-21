@@ -290,6 +290,40 @@ def cmd_mcp(args) -> None:
     mcp_main()
 
 
+def cmd_serve(args) -> None:
+    from capnet.http_api import serve
+    serve(args.host, args.port)
+
+
+def cmd_config(args) -> None:
+    from capnet import clients
+    if args.client == "list":
+        print("支持的客户端：" + " / ".join(clients.CLIENTS))
+        return
+    env = dict(kv.split("=", 1) for kv in args.env)
+    cfg = clients.config(args.client, args.url, env or None)
+    if args.write:
+        print(f"已写入 {clients.write_config(args.client, args.url, env or None)}（原文件备份为 .bak）")
+    else:
+        if cfg["path"]:
+            print(f"# 配置文件：{cfg['path']}（加 --write 自动合并）")
+        if cfg["snippet"]:
+            print(cfg["snippet"])
+    if cfg["note"]:
+        print(f"# {cfg['note']}")
+    print(f"# 使用规范：python demo.py rules，{cfg['rules']}")
+
+
+def cmd_tools(args) -> None:
+    from capnet.clients import export_tools
+    print(json.dumps(export_tools(args.format), ensure_ascii=False, indent=2))
+
+
+def cmd_rules(args) -> None:
+    from capnet.mcp_server import agent_rules
+    sys.stdout.buffer.write((agent_rules() + "\n").encode("utf-8"))
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="capnet: 能力卡注册表与打分路由")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -398,6 +432,25 @@ def main() -> None:
 
     sp = sub.add_parser("mcp", help="以 stdio MCP server 运行")
     sp.set_defaults(fn=cmd_mcp)
+
+    sp = sub.add_parser("serve", help="HTTP 服务：远程 MCP(/mcp) + REST/OpenAPI + 轨迹汇总，同一端口")
+    sp.add_argument("--host", default="127.0.0.1")
+    sp.add_argument("--port", type=int, default=8765)
+    sp.set_defaults(fn=cmd_serve)
+
+    sp = sub.add_parser("config", help="为各 agent 客户端生成 MCP 配置（cursor/codex/gemini-cli/…，list 查看全部）")
+    sp.add_argument("client")
+    sp.add_argument("--url", help="远程模式：capnet serve 的 /mcp 地址")
+    sp.add_argument("--env", action="append", default=[], help="KEY=VALUE，如 CAPNET_HUB_URL=http://host:8765")
+    sp.add_argument("--write", action="store_true", help="合并写入客户端配置文件（先备份）")
+    sp.set_defaults(fn=cmd_config)
+
+    sp = sub.add_parser("tools", help="导出 function calling 工具定义")
+    sp.add_argument("--format", choices=["openai", "anthropic", "gemini", "mcp"], default="openai")
+    sp.set_defaults(fn=cmd_tools)
+
+    sp = sub.add_parser("rules", help="打印 agent 使用规范（放进 AGENTS.md / 系统提示）")
+    sp.set_defaults(fn=cmd_rules)
 
     args = p.parse_args()
     args.fn(args)

@@ -119,3 +119,20 @@ hub refresh → induce → data/workflows_drafts/ → 人工评审 → promote �
 清理规则（`capnet/privacy.py`）：密钥、邮箱、链接、证件号、卡号、手机/座机、IP、路径、@账号、金额、《作品名》、
 常见姓氏+称谓、用户私有词表（`~/.capnet/private_terms.txt`）；注册表外的工具名置空；文本限长；时间截到天。
 规则不能识别任意人名/机构名，因此"原样展示 + 明确同意"是不可省略的第二道防线；残留风险以 ⚠ 提示给用户。
+
+## 接入层：与客户端无关（v0.4）
+
+核心只有 `Server`（6 个工具）+ `agent_rules.md`（唯一的使用规范）。外壳：
+
+| 外壳 | 模块 | 覆盖 |
+|---|---|---|
+| stdio MCP | `mcp_server.main` | 所有本地 MCP 客户端；`clients.py` 为 8 种客户端生成/合并配置 |
+| Streamable HTTP MCP | `http_api` `POST /mcp` | 填 URL 的平台（Claude.ai 连接器、Dify、Coze…） |
+| REST + OpenAPI 3.1 | `http_api` `/v1/tools/*`、`/openapi.json` | GPTs Actions、插件市场、工作流引擎 |
+| function calling 导出 / 库 | `clients.export_tools`、`Server.call` | 自研 agent、SDK 循环 |
+
+规范分发：Claude skill 正文 == `agent_rules.md`（测试保证一致）；MCP `prompts/get capnet_rules`；`GET /v1/rules`；OpenAPI description。
+关键约束（人工工具不可假装调用、上传须同意）同时写进工具描述，因为不是每个客户端都会把 `instructions` 交给模型。
+
+远程模式的取舍：执行记录在服务端内存里清理（不落盘、不记日志），弱于本地清理；贡献者 = hash(X-Capnet-Client | MCP 会话 id)，
+会话可被刷，女巫问题与"贡献者信誉"一起列在未解决清单。

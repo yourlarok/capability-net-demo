@@ -7,6 +7,8 @@
   list_workflows / get_workflow  浏览工作流库
   summarize_trace  把一次执行整理成"只含客观思路"的清理后预览（本地，不上传）
   submit_trace     用户明确同意后上传该预览；consent=false 则删除预览
+同一个 Server 被三种接入方式复用：stdio MCP（本文件 main）、HTTP MCP / REST / OpenAPI（http_api.py）、
+Python 库（Server().call）。使用规范只有一份：agent_rules.md（skill、MCP prompt、/v1/rules 都读它）。
 运行：python -m capnet.mcp_server   （或 demo.py mcp）
 """
 from __future__ import annotations
@@ -14,6 +16,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import threading
 from dataclasses import asdict
 
 from . import hub
@@ -27,7 +30,16 @@ from .search import as_options, search
 from .traces import summarize
 
 GAPS = os.path.join(DATA, "gaps.jsonl")
-VERSION = "0.3.0"
+VERSION = "0.4.0"
+RULES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent_rules.md")
+
+
+def agent_rules() -> str:
+    with open(RULES_PATH, encoding="utf-8") as f:
+        return f.read().strip()
+
+
+PROMPTS = [{"name": "capnet_rules", "description": "capnet 使用规范：何时路由、人工工具不得假装调用、上传前必须征得同意"}]
 
 INSTRUCTIONS = (
     "capnet 是能力与工作流路由网络。遇到多步骤的专业任务（营销、电商、内容生产、课程、游戏等），"
@@ -51,7 +63,8 @@ _STEP_SCHEMA = {
 
 TOOLS = [
     {"name": "plan_task",
-     "description": "复杂任务 -> 成熟工作流（阶段/方法/交付物/验收）+ 每个工具槽的推荐工具。未命中时返回能力直搜结果并记缺口。",
+     "description": "复杂任务 -> 成熟工作流（阶段/方法/交付物/验收）+ 每个工具槽的推荐工具。未命中时返回能力直搜结果并记缺口。"
+                    "标注'人工使用'的工具只能推荐给用户操作，不得假装调用。",
      "inputSchema": {"type": "object", "properties": {
          "query": {"type": "string", "description": "用户的任务描述"},
          "task_type": {"type": "string", "enum": ["produce", "improve", "grow", "launch", "review", "qa"],
@@ -78,7 +91,9 @@ TOOLS = [
          "workflow_id": {"type": "string"},
          "accepted": {"type": "boolean", "description": "用户是否接受了最终结果"},
          "steps": {"type": "array", "items": _STEP_SCHEMA},
-         "lessons": {"type": "array", "items": {"type": "string"}, "description": "可迁移的经验，最多 5 条"}},
+         "lessons": {"type": "array", "items": {"type": "string"}, "description": "可迁移的经验，最多 5 条"},
+         "private_terms": {"type": "array", "items": {"type": "string"},
+                           "description": "用户不想外传的词（公司/产品/人名），会被替换为 [私有]；只用于本次清理，不保存"}},
          "required": ["problem", "steps", "accepted"]}},
     {"name": "submit_trace",
      "description": "上传 summarize_trace 生成的预览。仅在用户看过预览并明确同意后以 consent=true 调用；"
@@ -92,12 +107,26 @@ TOOLS = [
 class Server:
     def __init__(self):
         self._reg: Registry | None = None
+        self._lock = threading.Lock()  # HTTP 模式多线程共享同一个 Server
 
     @property
     def reg(self) -> Registry:
-        if self._reg is None:
-            self._reg = Registry.load()
-        return self._reg
+        with self._lock:
+            if self._reg is None:
+                self._reg = Registry.load()
+            return self._reg
+
+    def call(self, name: str, args: dict | None = None, client_id: str | None = None) -> tuple[str, bool]:
+        """按名调用工具，返回 (文本, 是否出错)。client_id 只用于远程模式区分贡献者（会被哈希）。"""
+        if name not in {t["name"] for t in TOOLS}:
+            raise LookupError(f"未知工具 {name}")
+        args = dict(args or {})
+        try:
+            if name == "summarize_trace":
+                return self.summarize_trace(args, client_id)
+            return getattr(self, name)(args)
+        except (KeyError, ValueError, TypeError) as e:
+            return f"参数错误：{e}", True
 
     # ---------- 工具实现 ----------
 
@@ -154,9 +183,10 @@ class Server:
             return f"没有工作流 {a['workflow_id']}", True
         return json.dumps(asdict(wf), ensure_ascii=False, indent=1), False
 
-    def summarize_trace(self, a: dict) -> tuple[str, bool]:
+    def summarize_trace(self, a: dict, client_id: str | None = None) -> tuple[str, bool]:
         known = {c.id for c in self.reg.cards}
-        s = summarize(a, known, load_private_terms())
+        extra = [t for t in a.pop("private_terms", None) or [] if isinstance(t, str)]
+        s = summarize(a, known, load_private_terms() + extra, contributor_raw=client_id)
         hub.save_pending(s)
         return (s.render() + f"\n\n下一步：把以上内容原样给用户看，问是否同意上传。"
                 f"同意 → submit_trace(preview_id='{s.preview_id}', consent=true)；"
@@ -171,14 +201,14 @@ class Server:
 
     # ---------- JSON-RPC ----------
 
-    def handle(self, msg: dict) -> dict | None:
+    def handle(self, msg: dict, client_id: str | None = None) -> dict | None:
         mid, method, params = msg.get("id"), msg.get("method"), msg.get("params") or {}
         if mid is None:  # 通知
             return None
         try:
             if method == "initialize":
                 result = {"protocolVersion": params.get("protocolVersion", "2025-06-18"),
-                          "capabilities": {"tools": {}},
+                          "capabilities": {"tools": {}, "prompts": {}},
                           "serverInfo": {"name": "capnet", "version": VERSION},
                           "instructions": INSTRUCTIONS}
             elif method == "ping":
@@ -186,15 +216,18 @@ class Server:
             elif method == "tools/list":
                 result = {"tools": TOOLS}
             elif method == "tools/call":
-                name, args = params.get("name"), params.get("arguments") or {}
-                fn = getattr(self, name, None) if name in {t["name"] for t in TOOLS} else None
-                if fn is None:
-                    return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": f"未知工具 {name}"}}
                 try:
-                    text, is_err = fn(args)
-                except (KeyError, ValueError, TypeError) as e:
-                    text, is_err = f"参数错误：{e}", True
+                    text, is_err = self.call(params.get("name"), params.get("arguments"), client_id)
+                except LookupError as e:
+                    return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": str(e)}}
                 result = {"content": [{"type": "text", "text": text}], "isError": is_err}
+            elif method == "prompts/list":
+                result = {"prompts": PROMPTS}
+            elif method == "prompts/get":
+                if params.get("name") != "capnet_rules":
+                    return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": "未知 prompt"}}
+                result = {"description": PROMPTS[0]["description"],
+                          "messages": [{"role": "user", "content": {"type": "text", "text": agent_rules()}}]}
             else:
                 return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32601, "message": f"未知方法 {method}"}}
         except Exception as e:  # noqa: BLE001 —— 服务不能因单次调用崩溃

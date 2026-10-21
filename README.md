@@ -4,16 +4,16 @@
 （标明 agent 可调用 or 只能人工使用）。任务完成后可**自愿**上传"客观解决思路"：本地清理私有信息、
 原样预览、用户同意才上传；上传的轨迹回流到工具打分并归纳新工作流。上传与否不影响路由。
 
-## 接入（MCP）
+## 接入（任何 agent）
 
-**完整步骤见 [docs/使用教程.md](docs/使用教程.md)。**
+**完整步骤见 [docs/使用教程.md](docs/使用教程.md)。** 同一组 6 个工具 + 一份使用规范（`capnet/agent_rules.md`），四种接法：
 
-- 在本仓库目录打开 Claude Code：`.mcp.json` 自动注册 capnet MCP server，`.claude/skills/capnet` 提供使用规范。
-- 全局接入：`claude mcp add capnet --scope user -- python <仓库绝对路径>/demo.py mcp`，并把 `.claude/skills/capnet` 复制到 `~/.claude/skills/`。
-- 工具：`plan_task` / `find_capability` / `list_workflows` / `get_workflow` / `summarize_trace` / `submit_trace`。
-- 私有词表：`~/.capnet/private_terms.txt`（每行一个公司名/产品名/人名），汇总时自动替换。
-- 汇总端：`python demo.py hub serve --port 8765` 起 HTTP hub；客户端设 `CAPNET_HUB_URL=http://host:8765`，
-  不设则写本机 `data/hub/`（自托管）。`python demo.py hub refresh` 归纳草稿，`python demo.py promote <id>` 评审入库。
+- **本地 MCP（stdio）**：`python demo.py config <claude-code|codex|gemini-cli|cursor|windsurf|vscode|claude-desktop|cline> [--write]` 生成/合并配置。
+- **远程 MCP（HTTP）**：`python demo.py serve --host 0.0.0.0` → 客户端填 `http://<host>:8765/mcp`（Claude.ai 连接器、Dify、Coze 等）。
+- **REST + OpenAPI**：同一服务的 `/openapi.json` 可导入 GPTs Actions / Coze·Dify 插件；`POST /v1/tools/<name>`。
+- **Function calling / 库**：`python demo.py tools --format openai|anthropic|gemini`，示例 `examples/function_calling.py`。
+- 使用规范：`python demo.py rules`（放进 AGENTS.md / GEMINI.md / .cursor/rules / 系统提示；Claude Code 用 `.claude/skills/capnet`）。
+- 上传自愿：本地清理 → 原样预览 → 用户同意才提交；同一个 `serve` 端口兼任 hub。`hub refresh` 归纳草稿，`promote <id>` 评审入库。
 
 ---
 

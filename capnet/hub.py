@@ -17,7 +17,6 @@ from __future__ import annotations
 import json
 import os
 import urllib.request
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .paths import capnet_home, drafts_dir, hub_dir
 from .traces import (HASH_RE, Summary, credit, fingerprint, induce, load_traces, parse_trace,
@@ -141,39 +140,6 @@ def stats(root: str | None = None) -> dict:
 
 
 def serve(host: str = "127.0.0.1", port: int = 8765) -> None:
-    known = _known_entries()
-
-    class Handler(BaseHTTPRequestHandler):
-        def _send(self, code: int, body: dict) -> None:
-            data = json.dumps(body, ensure_ascii=False).encode("utf-8")
-            self.send_response(code)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
-
-        def do_GET(self):  # noqa: N802
-            if self.path == "/v1/health":
-                return self._send(200, {"ok": True})
-            if self.path == "/v1/stats":
-                return self._send(200, stats())
-            self._send(404, {"error": "not found"})
-
-        def do_POST(self):  # noqa: N802
-            if self.path != "/v1/traces":
-                return self._send(404, {"error": "not found"})
-            n = int(self.headers.get("Content-Length") or 0)
-            if n <= 0 or n > MAX_BODY:
-                return self._send(413, {"status": "error", "message": "body 为空或超过 64KB"})
-            try:
-                body = json.loads(self.rfile.read(n).decode("utf-8"))
-            except (ValueError, UnicodeDecodeError):
-                return self._send(400, {"status": "error", "message": "非法 JSON"})
-            result = ingest(body.get("trace"), known)
-            self._send(200 if result["status"] != "error" else 400, result)
-
-        def log_message(self, fmt, *args):  # 不记录请求体/来源 IP
-            return
-
-    print(f"capnet hub 监听 http://{host}:{port}  (POST /v1/traces, GET /v1/stats)")
-    ThreadingHTTPServer((host, port), Handler).serve_forever()
+    """hub 与路由共用一个 HTTP 服务（见 http_api）。"""
+    from .http_api import serve as _serve
+    _serve(host, port)
