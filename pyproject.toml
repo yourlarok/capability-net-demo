@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "capnet"
+version = "0.5.0"
+description = "能力与工作流路由网络：任何 agent 接入即得成熟工作流与工具推荐；思路回传自愿、经同意、先脱敏"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []  # 零第三方运行时依赖
+
+[project.scripts]
+capnet = "capnet.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/yourlarok/capability-net-demo"
+
+[tool.hatch.build.targets.wheel]
+packages = ["capnet"]
+exclude = ["capnet/__pycache__"]
+
+# 只读数据随包发布；hub / 草稿 / 缺口 / 评测 / 本地索引不进包
+[tool.hatch.build.targets.wheel.force-include]
+"data/cards.json" = "capnet/_data/cards.json"
+"data/pro_tools.json" = "capnet/_data/pro_tools.json"
+"data/telemetry_seed.json" = "capnet/_data/telemetry_seed.json"
+"data/user_profile.json" = "capnet/_data/user_profile.json"
+"data/catalog" = "capnet/_data/catalog"
+"data/workflows" = "capnet/_data/workflows"

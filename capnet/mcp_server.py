@@ -21,7 +21,7 @@ from dataclasses import asdict
 
 from . import hub
 from .gaps import log_gap
-from .paths import DATA
+from .paths import gaps_path
 from .cardview import render_capabilities
 from .intent import FAMILIES, describe
 from .planner import KEEP_RATIO, infer_market, market_fit, plan, render_plan
@@ -31,7 +31,7 @@ from .scoring import ScoreContext
 from .search import as_options, search
 from .traces import summarize
 
-GAPS = os.path.join(DATA, "gaps.jsonl")
+GAPS = gaps_path()
 VERSION = "0.4.0"
 RULES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent_rules.md")
 

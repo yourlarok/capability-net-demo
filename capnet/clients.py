@@ -11,8 +11,28 @@ import shutil
 import sys
 
 from .mcp_server import TOOLS
+from .paths import INSTALLED
 
 DEMO = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "demo.py")
+# 安装源：GitHub 分支归档（zip），安装时不需要 git，也不需要克隆仓库
+SPEC = os.environ.get("CAPNET_SPEC") or     "https://github.com/yourlarok/capability-net-demo/archive/refs/heads/v3-traces.zip"
+
+
+def _ephemeral_uv() -> bool:
+    """是否运行在 uvx 的临时环境里（uv 缓存目录下）：此时 sys.executable 下次可能不存在。"""
+    parts = [x.lower() for x in os.path.normpath(sys.prefix).split(os.sep)]
+    return "uv" in parts and "cache" in parts
+
+
+def launcher() -> list[str]:
+    """启动 MCP server 的命令。按运行形态选择，保证客户端下次启动时命令仍然有效：
+    仓库模式 -> python demo.py mcp；uvx 临时环境 -> uvx --from <SPEC> capnet mcp；
+    其余安装（uv tool install / pip）-> 该环境的 python -m capnet mcp。"""
+    if not INSTALLED:
+        return [sys.executable, DEMO, "mcp"]
+    if _ephemeral_uv():
+        return [shutil.which("uvx") or "uvx", "--from", SPEC, "capnet", "mcp"]
+    return [sys.executable, "-m", "capnet", "mcp"]
 
 
 def _home(*p: str) -> str:
@@ -29,7 +49,8 @@ def _appdata(*p: str) -> str:
 
 # 客户端 -> (配置文件, 顶层键, stdio 条目, 远程条目 | None, 规范放哪)
 def _stdio(env: dict | None) -> dict:
-    e = {"command": sys.executable, "args": [DEMO, "mcp"]}
+    cmd = launcher()
+    e = {"command": cmd[0], "args": cmd[1:]}
     if env:
         e["env"] = env
     return e
@@ -55,8 +76,9 @@ CLIENTS = {
 
 
 def _toml_entry(env: dict | None) -> str:
-    lines = ["[mcp_servers.capnet]", f"command = {json.dumps(sys.executable)}",
-             f"args = [{json.dumps(DEMO)}, \"mcp\"]"]
+    cmd = launcher()
+    lines = ["[mcp_servers.capnet]", f"command = {json.dumps(cmd[0])}",
+             "args = [" + ", ".join(json.dumps(a) for a in cmd[1:]) + "]"]
     if env:
         lines.append("env = { " + ", ".join(f"{k} = {json.dumps(v)}" for k, v in env.items()) + " }")
     return "\n".join(lines) + "\n"
@@ -69,7 +91,7 @@ def config(client: str, url: str | None = None, env: dict | None = None) -> dict
     if client == "claude-code":
         envs = "".join(f" -e {k}={v}" for k, v in (env or {}).items())
         cmd = (f"claude mcp add --transport http capnet {url}" if url
-               else f"claude mcp add capnet --scope user{envs} -- \"{sys.executable}\" \"{DEMO}\" mcp")
+               else f"claude mcp add capnet --scope user{envs} -- " + " ".join(f'"{a}"' for a in launcher()))
         return {"path": None, "snippet": cmd, "entry": None, "rules": c["rules"], "note": "在终端执行上面的命令"}
     if client == "codex":
         if url:

@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 
 from .cards import Card, flatten, load_apps
 from .domains import UserProfile, load_profile
-from .paths import DATA, hub_dir
+from .paths import DATA, hub_dir, user_workflows_dir
 from .scoring import Stats
 from .telemetry import Telemetry
 from .workflows import Workflow, load_workflows
@@ -50,9 +50,14 @@ class Registry:
                              events_path=events if load_hub and os.path.exists(events) else None)
         wf_dir = os.path.join(data_dir, "workflows")
         profile = load_profile(os.path.join(data_dir, "user_profile.json")) if use_profile else UserProfile()
+        workflows = load_workflows(wf_dir) if os.path.isdir(wf_dir) else []
+        extra = user_workflows_dir()
+        if extra and os.path.isdir(extra):  # 安装模式下评审入库的工作流，同 id 覆盖随包版本
+            mine = load_workflows(extra)
+            ids = {w.workflow_id for w in mine}
+            workflows = [w for w in workflows if w.workflow_id not in ids] + mine
         return cls(cards=cards, stats=tel.stats(now=0.0, half_life=half_life),
-                   workflows=load_workflows(wf_dir) if os.path.isdir(wf_dir) else [],
-                   profile=profile)
+                   workflows=workflows, profile=profile)
 
     def in_domains(self, domains: list[str]) -> list[Card]:
         return [c for c in self.cards
