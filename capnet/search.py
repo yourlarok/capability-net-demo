@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 
 from .cards import Card
 from .domains import UserProfile
+from .intent import declared_or_inferred, tier
 from .scoring import Breakdown, ScoreContext, Stats, score_card
 from .tokens import field_relevance, idf_table, tokenize
 
@@ -42,6 +43,7 @@ class RankedCard:
     breakdown: Breakdown
     final: float
     stats: Stats = field(default_factory=Stats)
+    tier: int = 2  # 意图族：2 主族 / 1 次族 / 0 族外（见 intent.py）
 
 
 @dataclass
@@ -51,6 +53,8 @@ class FunnelTrace:
     after_recall: int = 0
     ranked: list[RankedCard] = field(default_factory=list)
     gap: bool = False  # True = 注册表答不了这个查询（无结果或特征词未命中），应记缺口
+    families: dict = field(default_factory=dict)  # 查询识别出的能力族权重
+    off_intent: int = 0  # 被意图门挡掉的族外候选数
 
 
 # 通用语素：能力描述的构词常客，单独命中不能证明覆盖（"合成/服务"不等于会做）
@@ -101,8 +105,12 @@ def _popularity_prior(card: Card) -> float | None:
     return 0.2 + 0.7 * max(0.0, min(1.0, norm))
 
 
+IN_FAMILY_REL_EXP = 0.5
+
+
 def _rerank(recalled: list[tuple[float, Card]], stats_getter, ctx: ScoreContext,
-            profile: UserProfile | None, k: int, trace: FunnelTrace) -> FunnelTrace:
+            profile: UserProfile | None, k: int, trace: FunnelTrace,
+            qfam: dict[str, float] | None = None, keep_ratio: float = 0.0) -> FunnelTrace:
     for rel, card in recalled:
         stats = stats_getter(card.id)
         bd = score_card(
@@ -111,10 +119,22 @@ def _rerank(recalled: list[tuple[float, Card]], stats_getter, ctx: ScoreContext,
             recognition_prior=_popularity_prior(card),
         )
         affinity = profile.affinity(card.domain) if profile else 1.0
+        t = tier(card.domain, qfam or {})
+        # 已确认族内（有意图线索且命中）时压缩相关度：主题对口已由族门保证，字面重叠只做细分，
+        # 不该压过真实质量数据（否则介绍里多写几个关键词的卡就能抢首位）
+        rel_term = rel ** IN_FAMILY_REL_EXP if qfam and t > 0 else rel
         trace.ranked.append(RankedCard(card=card, relevance=rel, breakdown=bd,
-                                       final=rel * bd.score * affinity, stats=stats))
-    trace.ranked.sort(key=lambda x: -x.final)
-    trace.ranked = [rc for rc in trace.ranked if rc.final > 0.0][:k]
+                                       final=rel_term * bd.score * affinity, stats=stats, tier=t))
+    # 意图族优先于分数：族内弱匹配也排在族外强匹配之前；有族内候选时族外不出现
+    trace.ranked.sort(key=lambda x: (-x.tier, -x.final))
+    ranked = [rc for rc in trace.ranked if rc.final > 0.0]
+    if qfam and any(rc.tier > 0 for rc in ranked):
+        trace.off_intent = sum(rc.tier == 0 for rc in ranked)
+        ranked = [rc for rc in ranked if rc.tier > 0]
+    if keep_ratio and ranked:  # 相对截断：明显弱于首选的不凑数
+        best = ranked[0].final
+        ranked = [rc for rc in ranked if rc.final >= best * keep_ratio]
+    trace.ranked = ranked[:k]
     return trace
 
 
@@ -128,8 +148,14 @@ def search(
     recall_size: int = 50,
     min_relevance: float = 0.02,
     profile: UserProfile | None = None,
+    intent_gate: bool = True,
+    keep_ratio: float = 0.0,
+    families: list[str] | None = None,
 ) -> FunnelTrace:
+    """families：调用方（通常是 LLM agent）声明的能力族，优先于词表推断。"""
     trace = FunnelTrace(total=len(cards))
+    qfam = declared_or_inferred(query, families) if intent_gate else {}
+    trace.families = qfam
 
     pool = [c for c in cards if c.healthy]
     if domain:
@@ -147,7 +173,7 @@ def search(
         recalled = [(1.0, c) for c in pool]
     trace.after_recall = len(recalled)
 
-    out = _rerank(recalled, lambda cid: stats_by_id.get(cid, Stats()), ctx, profile, k, trace)
+    out = _rerank(recalled, lambda cid: stats_by_id.get(cid, Stats()), ctx, profile, k, trace, qfam, keep_ratio)
     return _mark_gap(out, dtoks) if query else out
 
 
@@ -161,6 +187,8 @@ def search_store(
     min_relevance: float = 0.02,
     profile: UserProfile | None = None,
     now: float = 0.0,
+    intent_gate: bool = True,
+    families: list[str] | None = None,
 ) -> FunnelTrace:
     """store 快速通道：召回走持久化倒排索引（SQL），精排只在 top-recall 上进行。"""
     counts = store.counts()
@@ -176,7 +204,9 @@ def search_store(
     entries = store.get_entries([eid for eid, _ in hits])
     stats_map = store.stats_for(list(entries), now, ctx.weights.half_life)
     recalled = [(rel, entries[eid]) for eid, rel in hits if eid in entries]
-    out = _rerank(recalled, lambda cid: stats_map.get(cid, Stats()), ctx, profile, k, trace)
+    qfam = declared_or_inferred(query, families) if intent_gate else {}
+    trace.families = qfam
+    out = _rerank(recalled, lambda cid: stats_map.get(cid, Stats()), ctx, profile, k, trace, qfam)
     return _mark_gap(out, dtoks) if query else out
 
 
@@ -215,5 +245,17 @@ def as_options(trace: FunnelTrace, max_options: int = 3) -> list[dict]:
             "ucb": round(b.ucb, 3),
             "is_new": s.selections < 30,
             "recommended": i == 0,
+            # 渲染用的完整信息（cardview.py）
+            "accessibility": c.accessibility,
+            "manual": not c.auto_callable,
+            "intents": c.intents,
+            "inputs": c.inputs,
+            "outputs": c.outputs,
+            "markets": c.markets,
+            "users": (c.popularity or {}).get("users"),
+            "success_rate": round(s.successes / (s.successes + s.failures), 3) if s.successes + s.failures else None,
+            "relevance": round(rc.relevance, 3),
+            "tier": rc.tier,
+            "score": round(b.score, 3),
         })
     return options

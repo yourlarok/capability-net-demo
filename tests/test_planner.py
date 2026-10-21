@@ -43,8 +43,8 @@ class TestPlanner(unittest.TestCase):
 
     def test_manual_tools_are_labeled(self):
         md = render_plan(self.p)
-        self.assertIn("人工使用·gui", md)
-        self.assertIn("agent 可调用·api", md)
+        self.assertIn("👤 人工·软件界面", md)
+        self.assertIn("🤖 API 直连", md)
 
     def test_out_of_scope_rejected(self):
         self.assertFalse(plan("设计一个三居室的装修方案", self.reg).matched)

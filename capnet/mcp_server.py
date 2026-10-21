@@ -22,7 +22,9 @@ from dataclasses import asdict
 from . import hub
 from .gaps import log_gap
 from .paths import DATA
-from .planner import infer_market, market_fit, plan, render_plan
+from .cardview import render_capabilities
+from .intent import FAMILIES, describe
+from .planner import KEEP_RATIO, infer_market, market_fit, plan, render_plan
 from .privacy import load_private_terms
 from .registry import Registry
 from .scoring import ScoreContext
@@ -37,6 +39,24 @@ RULES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent_rul
 def agent_rules() -> str:
     with open(RULES_PATH, encoding="utf-8") as f:
         return f.read().strip()
+
+
+# 能力族：由调用方（LLM）判断并声明，比词表推断可靠得多（见 intent.py）
+_TYPE_SCHEMA = {
+    "type": "array", "items": {"type": "string", "enum": list(FAMILIES)},
+    "description": "你对需求所需能力类型的判断（强烈建议填写，可多选）："
+                   + "；".join(f"{k}={v.split(' ', 1)[1]}" for k, v in FAMILIES.items())
+                   + "。例：'给角色配个声音'→[speech]，'画角色立绘'→[image]，'给视频配乐'→[music]。",
+}
+DISPLAY_HINT = ("\n\n---\n*（给 agent：请把上面的 Markdown 原样展示给用户，"
+                "不要改写成纯文字摘要；需要选择时让用户回复编号。）*")
+
+
+def _types(a: dict) -> list[str] | None:
+    t = a.get("capability_type")
+    if isinstance(t, str):
+        t = [t]
+    return [x for x in t or [] if x in FAMILIES] or None
 
 
 PROMPTS = [{"name": "capnet_rules", "description": "capnet 使用规范：何时路由、人工工具不得假装调用、上传前必须征得同意"}]
@@ -70,13 +90,16 @@ TOOLS = [
          "task_type": {"type": "string", "enum": ["produce", "improve", "grow", "launch", "review", "qa"],
                        "description": "agent 对任务类型的判断；qa=问答/排障/购买咨询，不走工作流"},
          "market": {"type": "string", "enum": ["cn", "global"], "description": "目标市场；缺省按语言推断"},
+         "capability_type": _TYPE_SCHEMA,
          "max_cost": {"type": "number"}},
          "required": ["query"]}},
     {"name": "find_capability",
-     "description": "单个能力缺口的工具候选（含 agent 可调用/人工使用标注、质量分、数据量）。",
+     "description": "单个能力需求的工具推荐：返回排版好的能力卡（总览对比表 + 每张卡的调用方式、擅长、成本速度、"
+                    "评分、数据量、推荐理由）。请同时传 capability_type 声明能力类型，避免'画画'推荐出配音工具。",
      "inputSchema": {"type": "object", "properties": {
-         "query": {"type": "string"}, "domain": {"type": "string"},
-         "k": {"type": "integer", "default": 5}, "market": {"type": "string", "enum": ["cn", "global"]}}}},
+         "query": {"type": "string"}, "capability_type": _TYPE_SCHEMA, "domain": {"type": "string"},
+         "k": {"type": "integer", "default": 5}, "market": {"type": "string", "enum": ["cn", "global"]}},
+         "required": ["query", "capability_type"]}},
     {"name": "list_workflows", "description": "列出工作流库（id、名称、行业、来源）。",
      "inputSchema": {"type": "object", "properties": {"industry": {"type": "string"}}}},
     {"name": "get_workflow", "description": "取单个工作流的完整定义。",
@@ -118,15 +141,20 @@ class Server:
 
     def call(self, name: str, args: dict | None = None, client_id: str | None = None) -> tuple[str, bool]:
         """按名调用工具，返回 (文本, 是否出错)。client_id 只用于远程模式区分贡献者（会被哈希）。"""
+        text, is_err, _ = self.call_full(name, args, client_id)
+        return text, is_err
+
+    def call_full(self, name: str, args: dict | None = None,
+                  client_id: str | None = None) -> tuple[str, bool, dict | None]:
+        """同 call，额外返回结构化数据（MCP structuredContent / REST data）。"""
         if name not in {t["name"] for t in TOOLS}:
             raise LookupError(f"未知工具 {name}")
         args = dict(args or {})
         try:
-            if name == "summarize_trace":
-                return self.summarize_trace(args, client_id)
-            return getattr(self, name)(args)
+            out = self.summarize_trace(args, client_id) if name == "summarize_trace" else getattr(self, name)(args)
         except (KeyError, ValueError, TypeError) as e:
-            return f"参数错误：{e}", True
+            return f"参数错误：{e}", True, None
+        return out if len(out) == 3 else (out[0], out[1], None)
 
     # ---------- 工具实现 ----------
 
@@ -135,40 +163,44 @@ class Server:
         if a.get("task_type") == "qa":
             return ("这是问答/排障/咨询类请求，不需要工作流，直接回答即可。", False)
         p = plan(q, self.reg, max_cost=a.get("max_cost"), task_type=a.get("task_type"),
-                 market=a.get("market"))
+                 market=a.get("market"), families=_types(a))
         if not p.matched:
             log_gap(GAPS, q, None, "no_workflow")
         for sl in p.gaps:
             log_gap(GAPS, q, sl.domain, "slot_unfilled")
+        slim = lambda opts: [{"id": o["value"], "name": o["name"], "accessibility": o["accessibility"],  # noqa: E731
+                              "manual": o["manual"]} for o in opts]
         structured = {
             "matched": p.matched,
             "workflow_id": p.workflow.workflow_id if p.workflow else None,
             "relevance": round(p.relevance, 3),
             "slots": [{"stage": sp.stage.name, "slot_id": f.slot.slot_id, "domain": f.slot.domain,
-                       "options": [{"id": o["value"], "name": o["name"], "accessibility": o["accessibility"],
-                                    "manual": o["manual"]} for o in f.options]}
-                      for sp in p.stages for f in sp.fills],
+                       "options": slim(f.options)} for sp in p.stages for f in sp.fills],
+            "fallback": slim(p.fallback),
         }
-        return (render_plan(p) + "\n\n```json\n" + json.dumps(structured, ensure_ascii=False) + "\n```", False)
+        return render_plan(p) + DISPLAY_HINT, False, structured
 
-    def find_capability(self, a: dict) -> tuple[str, bool]:
+    def find_capability(self, a: dict) -> tuple[str, bool, dict]:
         q, dom, k = a.get("query"), a.get("domain"), int(a.get("k") or 5)
         market = a.get("market") or (infer_market(q) if q else None)
+        declared = _types(a)
         reg = self.reg
         ctx = ScoreContext(total_selections=reg.total_selections)
-        trace = search(reg.cards, reg.stats, q, ctx, domain=dom, k=k * 2, profile=reg.profile)
+        trace = search(reg.cards, reg.stats, q, ctx, domain=dom, k=k * 2, profile=reg.profile,
+                       families=declared, keep_ratio=KEEP_RATIO)
         for rc in trace.ranked:
             rc.final *= market_fit(rc.card, market)
-        trace.ranked.sort(key=lambda x: -x.final)
+        trace.ranked.sort(key=lambda x: (-x.tier, -x.final))
         trace.ranked = trace.ranked[:k]
         if q and trace.gap:
             log_gap(GAPS, q, dom, "no_distinctive_match")
         opts = as_options(trace, max_options=k)
-        for o, rc in zip(opts, trace.ranked):
-            o["accessibility"] = rc.card.accessibility
-            o["manual"] = not rc.card.auto_callable
-        note = "注册表没有可靠命中（已记缺口），不要编造工具。\n" if q and trace.gap else ""
-        return note + json.dumps(opts, ensure_ascii=False, indent=1), False
+        if q and trace.gap and not trace.families:
+            opts = []  # 既没有类型线索、核心词也没命中：宁缺毋滥
+        source = "agent 声明" if declared else ("关键词推断" if trace.families else "未识别")
+        text = render_capabilities(q or dom or "", opts, describe(trace.families), source, market,
+                                   trace.off_intent, gap=bool(q and trace.gap))
+        return text + DISPLAY_HINT, False, {"options": opts, "families": trace.families, "gap": trace.gap}
 
     def list_workflows(self, a: dict) -> tuple[str, bool]:
         ind = a.get("industry")
@@ -217,10 +249,12 @@ class Server:
                 result = {"tools": TOOLS}
             elif method == "tools/call":
                 try:
-                    text, is_err = self.call(params.get("name"), params.get("arguments"), client_id)
+                    text, is_err, data = self.call_full(params.get("name"), params.get("arguments"), client_id)
                 except LookupError as e:
                     return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": str(e)}}
                 result = {"content": [{"type": "text", "text": text}], "isError": is_err}
+                if data is not None:
+                    result["structuredContent"] = data
             elif method == "prompts/list":
                 result = {"prompts": PROMPTS}
             elif method == "prompts/get":

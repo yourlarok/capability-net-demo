@@ -80,7 +80,15 @@ def make_handler(server: Server, known: set[str]):
         def _body(self, limit: int = MAX_BODY):
             n = int(self.headers.get("Content-Length") or 0)
             if n <= 0 or n > limit:
-                self._send(413, {"status": "error", "message": f"body 为空或超过 {limit // 1024}KB"})
+                # 先读掉（有上限的）请求体再回 413：不读就回，Windows 上客户端常收到连接重置而不是 413
+                left = min(n, 8 * 1024 * 1024)
+                while left > 0:
+                    chunk = self.rfile.read(min(65536, left))
+                    if not chunk:
+                        break
+                    left -= len(chunk)
+                self.close_connection = True
+                self._send(413,{"status": "error", "message": f"body 为空或超过 {limit // 1024}KB"})
                 return None
             try:
                 return json.loads(self.rfile.read(n).decode("utf-8"))
@@ -131,10 +139,10 @@ def make_handler(server: Server, known: set[str]):
                 if body is None:
                     return
                 try:
-                    text, is_err = server.call(path[len("/v1/tools/"):], body, self._client_id())
+                    text, is_err, data = server.call_full(path[len("/v1/tools/"):], body, self._client_id())
                 except LookupError as e:
                     return self._send(404, {"text": str(e), "is_error": True})
-                return self._send(200, {"text": text, "is_error": is_err})
+                return self._send(200, {"text": text, "is_error": is_err, "data": data})
             if path == "/v1/traces":
                 body = self._body(hub.MAX_BODY)
                 if body is None:
