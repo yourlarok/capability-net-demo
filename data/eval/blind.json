@@ -1,0 +1,82 @@
+[
+ {
+  "domain": "marketing",
+  "query": "公司招聘宣传视频发出去没什么反响，帮我看看问题在哪",
+  "expect": "marketing-video-improve"
+ },
+ {
+  "domain": "marketing",
+  "query": "这条产品介绍视频想在投放前先优化一版",
+  "expect": "marketing-video-improve"
+ },
+ {
+  "domain": "brand",
+  "query": "给一家社区咖啡馆做品牌推广策划",
+  "expect": "brand-campaign"
+ },
+ {
+  "domain": "social",
+  "query": "知乎账号怎么从零做起来",
+  "expect": "account-growth"
+ },
+ {
+  "domain": "commerce",
+  "query": "给新款运动鞋做一套淘宝主图和短视频",
+  "expect": "ecommerce-product-video"
+ },
+ {
+  "domain": "live",
+  "query": "帮我优化一下直播间的排品和话术",
+  "expect": "live-commerce-review"
+ },
+ {
+  "domain": "edu",
+  "query": "录一套考研英语网课",
+  "expect": "course-video"
+ },
+ {
+  "domain": "podcast",
+  "query": "把访谈录音剪成一期播客上线",
+  "expect": "podcast-episode"
+ },
+ {
+  "domain": "game",
+  "query": "用 Godot 做一个小型平台跳跃游戏",
+  "expect": "game-dev"
+ },
+ {
+  "domain": "recap",
+  "query": "做一条十分钟的动漫剧情解说",
+  "expect": "video-recap"
+ },
+ {
+  "domain": "adv-out",
+  "query": "抖音账号被封了怎么申诉",
+  "expect": null
+ },
+ {
+  "domain": "adv-out",
+  "query": "剪映导出视频失败报错",
+  "expect": null
+ },
+ {
+  "domain": "adv-out",
+  "query": "直播用什么麦克风好",
+  "expect": null
+ },
+ {
+  "domain": "adv-out",
+  "query": "广告法里哪些词不能用",
+  "expect": null
+ },
+ {
+  "domain": "adv-out",
+  "query": "什么是品牌资产",
+  "expect": null
+ },
+ {
+  "domain": "adv-out",
+  "query": "帮我写一封请假邮件",
+  "expect": null
+ }
+]

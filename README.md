@@ -1,4 +1,23 @@
-# capnet-demo：能力卡打分公式验证
+# capnet：能力与工作流路由网络
+
+任何 agent 接入即可得到完整路由：复杂任务 → 成熟工作流（阶段/方法/交付物/验收）→ 每步推荐工具
+（标明 agent 可调用 or 只能人工使用）。任务完成后可**自愿**上传"客观解决思路"：本地清理私有信息、
+原样预览、用户同意才上传；上传的轨迹回流到工具打分并归纳新工作流。上传与否不影响路由。
+
+## 接入（MCP）
+
+**完整步骤见 [docs/使用教程.md](docs/使用教程.md)。**
+
+- 在本仓库目录打开 Claude Code：`.mcp.json` 自动注册 capnet MCP server，`.claude/skills/capnet` 提供使用规范。
+- 全局接入：`claude mcp add capnet --scope user -- python <仓库绝对路径>/demo.py mcp`，并把 `.claude/skills/capnet` 复制到 `~/.claude/skills/`。
+- 工具：`plan_task` / `find_capability` / `list_workflows` / `get_workflow` / `summarize_trace` / `submit_trace`。
+- 私有词表：`~/.capnet/private_terms.txt`（每行一个公司名/产品名/人名），汇总时自动替换。
+- 汇总端：`python demo.py hub serve --port 8765` 起 HTTP hub；客户端设 `CAPNET_HUB_URL=http://host:8765`，
+  不设则写本机 `data/hub/`（自托管）。`python demo.py hub refresh` 归纳草稿，`python demo.py promote <id>` 评审入库。
+
+---
+
+# 附：打分公式
 
 为 agent 能力注册表设计的打分公式 demo。要解决的问题：注册表几千张能力卡，
 路由排序不能让"高曝光平庸卡"永远霸榜，也不能让"冷启动好卡"永远没有出头之日，
@@ -42,6 +61,13 @@ python3 demo.py search "给游戏画像素风精灵图" --markdown   # Markdown 
 python3 demo.py board "画精灵图" "背景音乐" "游戏音效" --open  # 多缺口选择板：终端卡片 + HTML
 python3 demo.py search "配一段游戏主题曲" --max-cost 0.05  # 成本乘子生效
 python3 demo.py simulate --domain image.sprite --rounds 600 --explain  # 排名演化
+python3 demo.py plan "产品宣传视频播放量很低，帮我出一个完善的视频改进计划"  # 任务 → 工作流 → 逐阶段方法 + 工具填槽
+python3 demo.py eval                                      # 批量领域评测（dev / holdout / blind 三套，见 data/eval/）
+python3 demo.py induce traces.jsonl                       # 从执行轨迹归纳工作流草稿
+python3 demo.py summarize draft.json                       # 执行记录 → 清理后的预览 + preview_id（不上传）
+python3 demo.py submit <preview_id> --yes                 # 用户同意后上传（--no 删除预览）
+python3 demo.py hub serve | refresh | stats               # 汇总端
+python3 demo.py mcp                                       # stdio MCP server
 python3 -m unittest discover -s tests -v                 # 测试（含 2 万条目性能压测）
 ```
 
@@ -60,7 +86,15 @@ capnet/search.py     漏斗：健康+领域过滤 → 字段加权语义召回 �
 capnet/render.py     渲染：Markdown 卡片（对话内）/ 终端 ANSI 卡片 / 自包含 HTML 选择板
 capnet/telemetry.py  事件日志 + 半衰期衰减聚合
 capnet/simulate.py   planner 行为模拟器
-capnet/workflows.py  工作流：阶段 DAG + 槽位抽象（实践归纳来源）
+capnet/workflows.py  工作流：阶段（方法/交付物/验收）+ 槽位；检索 = 任务类型门 + 实义证据门 + 字段加权相关度
+capnet/registry.py   注册表门面：cards + pro_tools + catalog/*.json + 遥测 + 工作流一次加载
+capnet/planner.py    规划器：任务 → 工作流 → 填槽（主 domain 优先、按 app 去重）→ Markdown 计划 + 轨迹模板
+capnet/traces.py     执行轨迹：credit（拆遥测）/ induce（按独立贡献者归纳工作流）/ redact（脱敏）
+capnet/evaluate.py   批量领域评测：命中@1、域外拒识、槽位覆盖、自动化率
+capnet/privacy.py    隐私清理规则 + 私有词表 + 残留风险提示
+capnet/hub.py        两段式同意上传（指纹校验）+ 汇总端 ingest/refresh/HTTP 服务
+capnet/mcp_server.py stdio MCP server（零依赖 JSON-RPC）
+.claude/skills/capnet/SKILL.md  agent 使用规范：何时路由、人工工具边界、如何汇总思路、必须征得同意
 capnet/gaps.py       能力缺口日志：特征词无命中的查询落盘聚合，驱动策展/适配器扩容
 capnet/adapters/mcp_registry.py  MCP 官方 registry 适配器（产出草稿卡待评审，可直写 --db）
 capnet/adapters/huggingface.py   HuggingFace Hub 适配器（pipeline_tag 权威分域 + 下载量门槛，
@@ -69,7 +103,9 @@ data/cards.json      种子卡（v1 格式，自动包装）
 data/pro_tools.json  策展专业工具目录（PS/AE/Suno/剪映/Blender 等 gui/web 卡，
                      补齐采集层天然不可见的人工能力；popularity 标 curated-estimate）
 data/user_profile.json 用户领域画像（短剧/网文/视频解说/游戏）
-data/workflows/      种子工作流：game-dev / short-drama-episode / video-recap
+data/workflows/      10 条工作流：3 条实践归纳（游戏/短剧/解说）+ 7 条行业策展（营销视频改进/品牌/账号增长/电商/直播/课程/播客）
+data/catalog/        业务向能力目录（营销数据/投放/电商/教育/发布 + 人工服务卡）
+data/eval/           评测集与报告：queries(dev) / holdout / blind + sample_marketing_plan.md
 data/registry_drafts/ 适配器产出的草稿卡
 docs/superpowers/specs/2026-10-20-capnet-v2-design.md  v2 设计 spec
 ```

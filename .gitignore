@@ -7,3 +7,6 @@ data/registry.db-shm
 data/registry.db.mcp_cursor
 data/registry.db.hf_done
 data/registry_drafts/
+# 汇总端数据：贡献者的轨迹，不随代码公开
+data/hub/
+data/workflows_drafts/
