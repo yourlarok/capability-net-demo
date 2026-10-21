@@ -4,6 +4,15 @@
 （标明 agent 可调用 or 只能人工使用）。任务完成后可**自愿**上传"客观解决思路"：本地清理私有信息、
 原样预览、用户同意才上传；上传的轨迹回流到工具打分并归纳新工作流。上传与否不影响路由。
 
+## 一句话安装
+
+对你的 agent（Claude Code / Codex / Gemini CLI / Cursor / Windsurf / Claude Desktop……）说：
+
+> 请阅读 https://raw.githubusercontent.com/yourlarok/capability-net-demo/v3-traces/INSTALL.md ，按里面的说明帮我安装 capnet。
+
+agent 会自己完成：从 GitHub 源码包安装（`uv tool install`，没有 uv 就用 pip，不需要 git、不克隆仓库），
+然后 `capnet setup` 探测本机所有客户端并写好 MCP 配置和使用规范，最后把报告给你。撤销：`capnet setup --remove`。
+
 ## 接入（任何 agent）
 
 **完整步骤见 [docs/使用教程.md](docs/使用教程.md)。** 同一组 6 个工具 + 一份使用规范（`capnet/agent_rules.md`），四种接法：
