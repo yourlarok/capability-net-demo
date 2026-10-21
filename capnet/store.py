@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS entries (
   id TEXT PRIMARY KEY, app_id TEXT, name TEXT, vendor TEXT, domain TEXT,
   description TEXT, cost REAL, latency TEXT, accessibility TEXT,
   healthy INTEGER, review_status TEXT, true_quality REAL,
-  inputs TEXT, outputs TEXT, intents TEXT, extras TEXT, popularity TEXT
+  inputs TEXT, outputs TEXT, intents TEXT, extras TEXT, popularity TEXT, access TEXT NOT NULL DEFAULT '{}'
 );
 CREATE TABLE IF NOT EXISTS postings (token TEXT, entry_id TEXT, w REAL);
 CREATE INDEX IF NOT EXISTS idx_postings_token ON postings(token);
@@ -61,6 +61,8 @@ class Store:
         cols = {r[1] for r in self.conn.execute("PRAGMA table_info(entries)")}
         if "popularity" not in cols:  # 旧库迁移
             self.conn.execute("ALTER TABLE entries ADD COLUMN popularity TEXT NOT NULL DEFAULT '{}'")
+        if "access" not in cols:
+            self.conn.execute("ALTER TABLE entries ADD COLUMN access TEXT NOT NULL DEFAULT '{}'")
 
     def close(self) -> None:
         self.conn.close()
@@ -80,13 +82,13 @@ class Store:
         self.conn.execute(
             """INSERT OR REPLACE INTO entries
                (id, app_id, name, vendor, domain, description, cost, latency,
-                accessibility, healthy, review_status, true_quality, inputs, outputs, intents, extras, popularity)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                accessibility, healthy, review_status, true_quality, inputs, outputs, intents, extras, popularity, access)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (c.id, c.app_id, c.name, c.vendor, c.domain, c.description, c.cost_per_call,
              c.latency, c.accessibility, int(c.healthy), "approved", c.true_quality,
              json.dumps(c.inputs, ensure_ascii=False), json.dumps(c.outputs, ensure_ascii=False),
              json.dumps(c.intents, ensure_ascii=False), json.dumps(c.extras, ensure_ascii=False),
-             json.dumps(c.popularity, ensure_ascii=False)),
+             json.dumps(c.popularity, ensure_ascii=False), json.dumps(c.access, ensure_ascii=False)),
         )
         self.conn.execute("DELETE FROM postings WHERE entry_id = ?", (c.id,))
         rows = [(t, c.id, w) for t, w in _field_weighted_tokens(c).items()]
@@ -163,7 +165,7 @@ class Store:
         marks = ",".join("?" * len(ids))
         rows = self.conn.execute(
             f"SELECT id, app_id, name, vendor, domain, description, cost, latency, accessibility,"
-            f" healthy, true_quality, inputs, outputs, intents, extras, popularity FROM entries WHERE id IN ({marks})",
+            f" healthy, true_quality, inputs, outputs, intents, extras, popularity, access FROM entries WHERE id IN ({marks})",
             tuple(ids)).fetchall()
         out = {}
         for r in rows:
@@ -172,7 +174,7 @@ class Store:
                 cost_per_call=r[6], latency=r[7], accessibility=r[8], transport=r[8],
                 healthy=bool(r[9]), true_quality=r[10],
                 inputs=json.loads(r[11]), outputs=json.loads(r[12]), intents=json.loads(r[13]),
-                extras=json.loads(r[14]), popularity=json.loads(r[15]),
+                extras=json.loads(r[14]), popularity=json.loads(r[15]), access=json.loads(r[16] or "{}"),
             )
         return out
 

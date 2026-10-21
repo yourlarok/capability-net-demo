@@ -34,11 +34,15 @@ class Registry:
 
     @classmethod
     def load(cls, data_dir: str = DATA, half_life: float = 30.0, use_profile: bool = True,
-             load_hub: bool = True) -> "Registry":
+             load_hub: bool = True, include_demo: bool = True) -> "Registry":
+        """include_demo=False 去掉示例卡（access.demo，模拟数据、没有真实接入渠道）：对外服务默认如此，
+        模拟器 / 评测仍用全量。"""
         cards: list[Card] = []
         seen: set[str] = set()
         for p in catalog_paths(data_dir):
             for app in load_apps(p):
+                if not include_demo and app.access.get("demo"):
+                    continue
                 for c in flatten(app):
                     if c.id in seen:
                         raise ValueError(f"重复条目 id: {c.id}（{p}）")

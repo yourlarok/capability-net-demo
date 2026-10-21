@@ -139,6 +139,7 @@ def model_to_app(model: dict, normalized: float) -> dict:
                            f"下载量 {downloads}（≥{MIN_DOWNLOADS_DEFAULT} 门槛）满足应用价值判据"),
         "review_status": "approved" if mapped else "draft",
         "healthy": True,
+        "access": {"web": f"https://huggingface.co/{mid}", "api": HF_API},
         "capabilities": [{
             "domain": domain,
             "intents": _intent_tokens(model),
@@ -154,6 +155,11 @@ def model_to_app(model: dict, normalized: float) -> dict:
             "hf_formats": formats,
         }],
     }
+
+
+HF_API = {"docs": "https://huggingface.co/docs/inference-providers", "base_url": "https://router.huggingface.co",
+          "auth": "bearer", "env": "HF_TOKEN", "key_url": "https://huggingface.co/settings/tokens", "self_serve": True,
+          "note": "经 Inference Providers 调用（并非每个模型都有在线部署）；也可下载权重本地运行"}
 
 
 def percentile_ranks(models: list[dict]) -> dict[str, float]:

@@ -17,6 +17,12 @@ ACCESS = {
 LATENCY = {"fast": "⚡ 快", "medium": "⏱ 中", "slow": "🐢 慢"}
 MARKET = {"cn": "🇨🇳 国内", "global": "🌍 海外"}
 RANK = "①②③④⑤⑥⑦⑧⑨⑩"
+AUTH = {
+    "bearer": "请求头 `Authorization: Bearer <Key>`", "token": "请求头 `Authorization: Token <Key>`",
+    "oauth2": "OAuth 2.0 授权（先创建开发者应用，再由账号所有者授权）",
+    "ak_sk_jwt": "AccessKey + SecretKey 生成 JWT，放进 `Authorization: Bearer`",
+    "ak_sk_sign": "AccessKey + SecretKey 对请求签名", "password": "连接密码", "none": "无需鉴权（本地服务）",
+}
 
 
 def bar(x: float, n: int = 10) -> str:
@@ -27,7 +33,86 @@ def bar(x: float, n: int = 10) -> str:
 
 def access(o: dict) -> str:
     icon, label, _ = ACCESS.get(o.get("accessibility", ""), ("🤖", o.get("accessibility", "?"), True))
+    api = (o.get("access") or {}).get("api") or {}
+    if o.get("accessibility") == "api" and api:
+        label += " · 免鉴权" if api.get("auth") == "none" else " · 需授权" if api.get("auth") == "oauth2" else " · 需 Key"
     return f"{icon} {label}"
+
+
+def auth_text(auth: str) -> str:
+    if auth.startswith("header:"):
+        return f"请求头 `{auth[7:]}: <Key>`"
+    return AUTH.get(auth, auth)
+
+
+def link(label: str, url: str) -> str:
+    return f"[{label}]({url})"
+
+
+def access_lines(o: dict) -> list[str]:
+    """接入渠道：鉴权方式与凭证申请入口、文档端点、安装命令、下载/网页版、找人渠道。"""
+    a = o.get("access") or {}
+    if a.get("demo"):
+        return ["- **接入渠道**　🧪 示例卡（模拟数据，用于演示路由打分），没有真实接入渠道"
+                + (f"；{a['note']}" if a.get("note") else "")]
+    if not a:
+        return ["- **接入渠道**　⚠ 卡片未登记接入渠道（已知缺陷，请按工具名搜索官网）"]
+    out = ["- **接入渠道**"]
+    api = a.get("api")
+    if api:
+        key = []
+        if api.get("env"):
+            key.append(f"环境变量 `{api['env']}`")
+        if api.get("key_url"):
+            key.append(link("申请凭证", api["key_url"]))
+        if not api.get("self_serve", True):
+            key.append("需申请开通 / 审核")
+        out.append(f"  - 🔑 **鉴权**　{auth_text(api.get('auth', ''))}" + ("　·　" + " · ".join(key) if key else ""))
+        doc = [link("API 文档", api["docs"])] if api.get("docs") else []
+        if api.get("base_url"):
+            doc.append(f"端点 `{api['base_url']}`")
+        if doc:
+            out.append("  - 📘 **文档**　" + " · ".join(doc))
+        if api.get("note"):
+            out.append(f"  - 💡 {api['note']}")
+    cli = a.get("cli") or {}
+    if cli.get("install"):
+        out.append(f"  - 📦 **安装**　`{cli['install']}`")
+    if cli.get("run"):
+        out.append(f"  - ⌨️ **命令行**　`{cli['run']}`" + (f"　{link('文档', cli['docs'])}" if cli.get("docs") else ""))
+    if cli.get("note"):
+        out.append(f"  - 💡 {cli['note']}")
+    for r in (a.get("mcp") or {}).get("remotes") or []:
+        out.append(f"  - 🔌 **MCP**　`{r}`")
+    if a.get("web"):
+        out.append(f"  - 🌐 **网页版**　{a['web']}")
+    if a.get("download"):
+        out.append(f"  - ⬇️ **下载**　{a['download']}")
+    if a.get("repo"):
+        out.append(f"  - 🧩 **源码**　{a['repo']}")
+    if a.get("hire"):
+        out.append("  - 🧑‍💼 **找人渠道**　" + " · ".join(link(h["name"], h["url"]) for h in a["hire"]))
+    if a.get("note"):
+        out.append(f"  - ℹ️ {a['note']}")
+    return out
+
+
+def access_short(o: dict) -> str:
+    """表格里的一格：最关键的接入入口。"""
+    a = o.get("access") or {}
+    if a.get("demo"):
+        return "🧪 示例卡"
+    api = a.get("api") or {}
+    if o.get("accessibility") == "api" and api.get("key_url"):
+        return link("🔑 申请 Key", api["key_url"]) + (f" `{api['env']}`" if api.get("env") else "")
+    if o.get("accessibility") == "cli" and (a.get("cli") or {}).get("install"):
+        return f"`{a['cli']['install']}`"
+    for k, label in (("web", "🌐 网页版"), ("download", "⬇️ 下载"), ("repo", "🧩 源码")):
+        if a.get(k):
+            return link(label, a[k])
+    if a.get("hire"):
+        return link("🧑‍💼 " + a["hire"][0]["name"], a["hire"][0]["url"])
+    return "—"
 
 
 def cost(o: dict) -> str:
@@ -95,6 +180,7 @@ def card_detail(i: int, o: dict, query: str) -> list[str]:
     out.append(f"- **评分**　综合 `{bar(o['final'])}` {o['final']:.2f}　"
                f"匹配 {o.get('relevance', 0):.2f} · 质量 {o['quality']:.2f} · 口碑 {o['recognition']:.2f} · 选用率 {o['ctr']:.2f}")
     out.append(f"- **数据**　{data_line(o)}")
+    out += access_lines(o)
     why = []
     terms = matched_terms(query, o)
     if terms:
@@ -108,7 +194,7 @@ def card_detail(i: int, o: dict, query: str) -> list[str]:
     if why:
         out.append(f"- **为什么推荐**　{'；'.join(why)}")
     if not auto:
-        out.append("- **⚠ 注意**　人工工具：只能推荐给你操作，agent 不会假装调用它")
+        out.append("- **⚠ 注意**　人工工具：只能推荐给你操作，agent 不会假装调用它；按上面的接入渠道获取")
     return out + [""]
 
 
@@ -138,13 +224,40 @@ def render_capabilities(query: str, opts: list[dict], understanding: str, source
 
 def slot_table(opts: list[dict]) -> list[str]:
     """工作流计划中单个工具槽的紧凑对比表。"""
-    out = ["| | 工具 | 调用方式 | 成本 | 速度 | 数据 | 说明 |", "|:-:|---|---|---|:-:|---|---|"]
+    out = ["| | 工具 | 调用方式 | 接入 | 成本 | 速度 | 数据 | 说明 |", "|:-:|---|---|---|---|:-:|---|---|"]
     for i, o in enumerate(opts):
         star = "⭐" if i == 0 else RANK[i]
         d = "🆕 探索期" if o.get("is_new") else f"{o['calls']:,} 次" + (
             f" · {o['success_rate']:.0%}" if o.get("success_rate") is not None else "")
         desc = o["description"]
         desc = desc if len(desc) <= 36 else desc[:35] + "…"
-        out.append(f"| {star} | **{o['name']}** `{o['value']}` | {access(o)} | {cost(o)} "
+        out.append(f"| {star} | **{o['name']}** `{o['value']}` | {access(o)} | {access_short(o)} | {cost(o)} "
                    f"| {LATENCY.get(o['latency'], o['latency'])} | {d} | {desc} |")
     return out
+
+
+def access_checklist(opts: list[dict]) -> list[str]:
+    """计划用：把首选工具需要的账号 / Key / 安装汇总成一张准备清单。"""
+    rows, seen = [], set()
+    for o in opts:
+        aid = o.get("app_id") or o["value"]
+        if aid in seen:
+            continue
+        seen.add(aid)
+        a = o.get("access") or {}
+        api = a.get("api") or {}
+        if a.get("demo"):
+            need = "🧪 示例卡，无需准备"
+        elif o.get("accessibility") == "api" and api:
+            need = ("无需鉴权，本地启动即可" if api.get("auth") == "none"
+                    else f"`{api['env']}`" if api.get("env") else auth_text(api.get("auth", "")))
+        elif o.get("accessibility") == "cli":
+            need = "本地安装"
+        elif a.get("hire"):
+            need = "找到合适的人"
+        else:
+            need = "账号 / 安装软件"
+        rows.append(f"| **{o['name']}** | {access(o)} | {need} | {access_short(o)} |")
+    if not rows:
+        return []
+    return ["| 工具 | 方式 | 需要准备 | 入口 |", "|---|---|---|---|"] + rows

@@ -45,6 +45,7 @@ class AppCard:
     healthy: bool = True
     markets: list[str] = field(default_factory=list)  # 适用市场：cn / global …；空 = 不限
     review_status: str = "approved"  # draft = 适配器产出待评审，approved 才可入主注册表
+    access: dict = field(default_factory=dict)  # 接入渠道：web/download/repo/api(鉴权)/cli/hire/note/demo，见 access_problems
     true_quality: float = 0.5  # 仅供模拟器抽样，路由侧不可见
 
 
@@ -69,6 +70,7 @@ class Card:
     extras: dict = field(default_factory=dict)  # 源特有字段（mcp_remotes / hf_pipeline 等）
     popularity: dict = field(default_factory=dict)  # 源外部流行度，作冷启动认可度先验
     markets: list[str] = field(default_factory=list)
+    access: dict = field(default_factory=dict)
 
     @property
     def searchable_text(self) -> str:
@@ -106,6 +108,7 @@ def flatten(app: AppCard) -> list[Card]:
             extras=cap.extras,
             popularity=app.popularity,
             markets=app.markets,
+            access=app.access,
         ))
     return out
 
@@ -142,6 +145,7 @@ def _wrap_v1(item: dict) -> AppCard:
         value_evidence="v1 种子卡",
         healthy=item.get("healthy", True),
         true_quality=item.get("true_quality", 0.5),
+        access=item.get("access", {}),
         capabilities=[Capability(
             domain=item["domain"], intents=item["intents"], outputs=item["outputs"],
             inputs=item.get("inputs", []),
@@ -149,6 +153,40 @@ def _wrap_v1(item: dict) -> AppCard:
             cost_per_call=item.get("cost_per_call", 0.0), latency=item.get("latency", "medium"),
         )],
     )
+
+
+AUTH_TYPES = ("bearer", "token", "oauth2", "ak_sk_jwt", "ak_sk_sign", "password", "none")
+
+
+def access_problems(app: AppCard) -> list[str]:
+    """接入渠道校验：每个应用至少一个渠道；凡 agent 可调用的能力面都必须写清鉴权方式与凭证来源。
+
+    渠道字段：web 网页版 / download 下载 / repo 源码 / api{docs, base_url, auth, env, key_url, self_serve, note}
+    / cli{install, run, docs} / mcp{remotes} / hire[{name, url}] 找人渠道 / note / demo（模拟示例卡）。
+    auth 取值见 AUTH_TYPES，或 "header:<名称>" 表示自定义请求头里放 Key。
+    """
+    a, out = app.access or {}, []
+    if a.get("demo"):
+        return out
+    if not any(a.get(k) for k in ("web", "download", "repo", "api", "cli", "mcp", "hire")):
+        out.append("没有任何接入渠道")
+    api = a.get("api")
+    if api:
+        auth = api.get("auth", "")
+        if auth not in AUTH_TYPES and not auth.startswith("header:"):
+            out.append(f"api.auth 非法：{auth!r}")
+        if auth != "none" and auth != "password" and not api.get("key_url"):
+            out.append("api 缺 key_url（凭证在哪里申请）")
+        if not api.get("docs"):
+            out.append("api 缺 docs")
+    for cap in app.capabilities:
+        if cap.accessibility == "api" and not api:
+            out.append(f"{cap.domain} 标为 API 但没有 api 鉴权信息")
+        if cap.accessibility == "cli" and not (a.get("cli") or a.get("repo")):
+            out.append(f"{cap.domain} 标为命令行但没有安装方式")
+        if cap.accessibility == "mcp" and not (a.get("mcp") or cap.extras.get("mcp_remotes")):
+            out.append(f"{cap.domain} 标为 MCP 但没有服务地址")
+    return out
 
 
 def parse_app(item: dict) -> AppCard:

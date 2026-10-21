@@ -55,6 +55,7 @@ class FunnelTrace:
     gap: bool = False  # True = 注册表答不了这个查询（无结果或特征词未命中），应记缺口
     families: dict = field(default_factory=dict)  # 查询识别出的能力族权重
     off_intent: int = 0  # 被意图门挡掉的族外候选数
+    family_fallback: bool = False  # 字面未召回同类，按声明类型兜底召回
 
 
 # 通用语素：能力描述的构词常客，单独命中不能证明覆盖（"合成/服务"不等于会做）
@@ -171,6 +172,11 @@ def search(
         recalled = scored[:recall_size]
     else:
         recalled = [(1.0, c) for c in pool]
+    if families and qfam and not any(tier(c.domain, qfam) for _, c in recalled):
+        # agent 明确声明了类型，但字面没召回同类工具（如「电流声」没写进任何卡）：
+        # 退到该类型全部工具、按质量口碑排，而不是拿族外工具凑数
+        recalled += [(min_relevance, c) for c in pool if tier(c.domain, qfam)]
+        trace.family_fallback = True
     trace.after_recall = len(recalled)
 
     out = _rerank(recalled, lambda cid: stats_by_id.get(cid, Stats()), ctx, profile, k, trace, qfam, keep_ratio)
@@ -257,5 +263,7 @@ def as_options(trace: FunnelTrace, max_options: int = 3) -> list[dict]:
             "relevance": round(rc.relevance, 3),
             "tier": rc.tier,
             "score": round(b.score, 3),
+            "app_id": c.app_id,
+            "access": c.access,
         })
     return options

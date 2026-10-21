@@ -136,7 +136,8 @@ class Server:
     def reg(self) -> Registry:
         with self._lock:
             if self._reg is None:
-                self._reg = Registry.load()
+                # 对外推荐只给有真实接入渠道的工具；CAPNET_DEMO_CARDS=1 时保留示例卡（演示路由打分用）
+                self._reg = Registry.load(include_demo=os.environ.get("CAPNET_DEMO_CARDS") == "1")
             return self._reg
 
     def call(self, name: str, args: dict | None = None, client_id: str | None = None) -> tuple[str, bool]:
@@ -169,7 +170,7 @@ class Server:
         for sl in p.gaps:
             log_gap(GAPS, q, sl.domain, "slot_unfilled")
         slim = lambda opts: [{"id": o["value"], "name": o["name"], "accessibility": o["accessibility"],  # noqa: E731
-                              "manual": o["manual"]} for o in opts]
+                              "manual": o["manual"], "access": o.get("access", {})} for o in opts]
         structured = {
             "matched": p.matched,
             "workflow_id": p.workflow.workflow_id if p.workflow else None,

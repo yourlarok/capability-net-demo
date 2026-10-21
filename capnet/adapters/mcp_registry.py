@@ -65,6 +65,8 @@ def server_to_app(entry: dict) -> dict:
         "value_evidence": "MCP 官方 registry 收录；领域初分为关键词启发式，待评审确认",
         "review_status": "draft",
         "healthy": True,
+        "access": {"mcp": {"remotes": [r.get("url", "") for r in remotes if r.get("url")]},
+                   **({"repo": srv["repository"]["url"]} if (srv.get("repository") or {}).get("url") else {})},
         "capabilities": [{
             "domain": domain,
             "intents": [title] + [w for w in desc.replace("/", " ").split()[:6] if len(w) > 2],

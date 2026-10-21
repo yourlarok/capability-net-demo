@@ -12,7 +12,8 @@
     "transport": "http",
     "vendor": "MegaCorp",
     "healthy": true,
-    "true_quality": 0.62
+    "true_quality": 0.62,
+    "access": {"demo": true}
   },
   {
     "id": "img.pixelforge",
@@ -27,7 +28,8 @@
     "transport": "cli",
     "vendor": "community",
     "healthy": true,
-    "true_quality": 0.90
+    "true_quality": 0.90,
+    "access": {"demo": true}
   },
   {
     "id": "img.sdcomfy",
@@ -42,7 +44,8 @@
     "transport": "cli",
     "vendor": "local",
     "healthy": true,
-    "true_quality": 0.78
+    "true_quality": 0.78,
+    "access": {"repo": "https://github.com/comfyanonymous/ComfyUI", "download": "https://www.comfy.org/download", "api": {"docs": "https://docs.comfy.org/", "base_url": "http://127.0.0.1:8188", "auth": "none", "self_serve": true, "note": "本地启动 ComfyUI 后，向 /prompt 提交工作流 JSON（需先在界面导出 API 格式）"}}
   },
   {
     "id": "img.spritewave",
@@ -57,7 +60,8 @@
     "transport": "http",
     "vendor": "SpriteWave Inc",
     "healthy": true,
-    "true_quality": 0.93
+    "true_quality": 0.93,
+    "access": {"demo": true}
   },
   {
     "id": "img.gptimage",
@@ -72,7 +76,8 @@
     "transport": "http",
     "vendor": "OpenAI",
     "healthy": true,
-    "true_quality": 0.88
+    "true_quality": 0.88,
+    "access": {"web": "https://platform.openai.com/", "api": {"docs": "https://platform.openai.com/docs/guides/image-generation", "base_url": "https://api.openai.com/v1", "auth": "bearer", "env": "OPENAI_API_KEY", "key_url": "https://platform.openai.com/api-keys", "self_serve": true}}
   },
   {
     "id": "img.mj",
@@ -87,7 +92,8 @@
     "transport": "http",
     "vendor": "proxy",
     "healthy": true,
-    "true_quality": 0.90
+    "true_quality": 0.90,
+    "access": {"demo": true, "note": "Midjourney 没有官方 API；第三方代理属于非官方渠道，有封号风险。正式使用请走 Midjourney 网页版"}
   },
   {
     "id": "vid.kling",
@@ -102,7 +108,8 @@
     "transport": "http",
     "vendor": "Kuaishou",
     "healthy": true,
-    "true_quality": 0.80
+    "true_quality": 0.80,
+    "access": {"web": "https://klingai.com/", "api": {"docs": "https://app.klingai.com/global/dev/document-api", "base_url": "https://api-singapore.klingai.com", "auth": "ak_sk_jwt", "env": "KLING_ACCESS_KEY / KLING_SECRET_KEY", "key_url": "https://app.klingai.com/global/dev", "self_serve": true, "note": "用 AccessKey+SecretKey 生成 JWT 放进 Authorization: Bearer；任务异步，先拿 task_id 再轮询"}}
   },
   {
     "id": "vid.runway",
@@ -117,7 +124,8 @@
     "transport": "http",
     "vendor": "Runway",
     "healthy": true,
-    "true_quality": 0.82
+    "true_quality": 0.82,
+    "access": {"web": "https://app.runwayml.com/", "api": {"docs": "https://docs.dev.runwayml.com/", "base_url": "https://api.dev.runwayml.com/v1", "auth": "bearer", "env": "RUNWAYML_API_SECRET", "key_url": "https://dev.runwayml.com/", "self_serve": true, "note": "请求头还需 X-Runway-Version；按积分预充值计费"}}
   },
   {
     "id": "vid.wanlocal",
@@ -132,7 +140,8 @@
     "transport": "cli",
     "vendor": "local",
     "healthy": true,
-    "true_quality": 0.74
+    "true_quality": 0.74,
+    "access": {"repo": "https://github.com/Wan-Video/Wan2.1", "cli": {"install": "git clone https://github.com/Wan-Video/Wan2.1 && pip install -r requirements.txt", "run": "python generate.py --task i2v-14B --image in.jpg --prompt \"...\"", "note": "需本地 GPU；模型权重从 Hugging Face 下载"}}
   },
   {
     "id": "vid.unstable",
@@ -147,7 +156,8 @@
     "transport": "http",
     "vendor": "CrashCo",
     "healthy": false,
-    "true_quality": 0.95
+    "true_quality": 0.95,
+    "access": {"demo": true}
   },
   {
     "id": "tts.mimo",
@@ -162,7 +172,8 @@
     "transport": "http",
     "vendor": "Xiaomi",
     "healthy": true,
-    "true_quality": 0.85
+    "true_quality": 0.85,
+    "access": {"demo": true}
   },
   {
     "id": "tts.fish",
@@ -177,7 +188,8 @@
     "transport": "http",
     "vendor": "FishAudio",
     "healthy": true,
-    "true_quality": 0.83
+    "true_quality": 0.83,
+    "access": {"web": "https://fish.audio/", "api": {"docs": "https://docs.fish.audio/", "base_url": "https://api.fish.audio", "auth": "bearer", "env": "FISH_AUDIO_API_KEY", "key_url": "https://fish.audio/app/api-keys/", "self_serve": true}}
   },
   {
     "id": "tts.eleven",
@@ -192,7 +204,8 @@
     "transport": "http",
     "vendor": "ElevenLabs",
     "healthy": true,
-    "true_quality": 0.90
+    "true_quality": 0.90,
+    "access": {"web": "https://elevenlabs.io/", "api": {"docs": "https://elevenlabs.io/docs/api-reference", "base_url": "https://api.elevenlabs.io/v1", "auth": "header:xi-api-key", "env": "ELEVENLABS_API_KEY", "key_url": "https://elevenlabs.io/app/settings/api-keys", "self_serve": true}}
   },
   {
     "id": "mus.suno",
@@ -204,10 +217,11 @@
     "outputs": ["mp3"],
     "cost_per_call": 0.10,
     "latency": "slow",
-    "transport": "http",
+    "transport": "gui",
     "vendor": "Suno",
     "healthy": true,
-    "true_quality": 0.80
+    "true_quality": 0.80,
+    "access": {"web": "https://suno.com/", "note": "Suno 没有开放官方公共 API；第三方代理均为非官方渠道。建议在网页版生成后下载"}
   },
   {
     "id": "mus.musicgen",
@@ -222,7 +236,8 @@
     "transport": "cli",
     "vendor": "local",
     "healthy": true,
-    "true_quality": 0.68
+    "true_quality": 0.68,
+    "access": {"repo": "https://github.com/facebookresearch/audiocraft", "cli": {"install": "pip install -U audiocraft", "docs": "https://github.com/facebookresearch/audiocraft/blob/main/docs/MUSICGEN.md", "note": "需本地 GPU 与 ffmpeg"}}
   },
   {
     "id": "sfx.freesound",
@@ -237,7 +252,8 @@
     "transport": "http",
     "vendor": "community",
     "healthy": true,
-    "true_quality": 0.75
+    "true_quality": 0.75,
+    "access": {"web": "https://freesound.org/", "api": {"docs": "https://freesound.org/docs/api/", "base_url": "https://freesound.org/apiv2", "auth": "token", "env": "FREESOUND_API_KEY", "key_url": "https://freesound.org/apiv2/apply", "self_serve": true, "note": "请求头 Authorization: Token <key>；下载原文件需 OAuth2"}}
   },
   {
     "id": "mesh.tripo",
@@ -252,6 +268,7 @@
     "transport": "http",
     "vendor": "Tripo",
     "healthy": true,
-    "true_quality": 0.77
+    "true_quality": 0.77,
+    "access": {"web": "https://www.tripo3d.ai/", "api": {"docs": "https://platform.tripo3d.ai/docs", "base_url": "https://api.tripo3d.ai/v2/openapi", "auth": "bearer", "env": "TRIPO_API_KEY", "key_url": "https://platform.tripo3d.ai/api-keys", "self_serve": true}}
   }
 ]

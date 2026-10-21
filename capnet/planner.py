@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 
 from .registry import Registry
 from .scoring import ScoreContext
-from .cardview import RANK, render_capabilities, slot_table
+from .cardview import RANK, access_checklist, render_capabilities, slot_table
 from .intent import describe
 from .search import RankedCard, as_options, search
 from .traces import Step, Trace
@@ -187,6 +187,11 @@ def render_plan(p: Plan) -> str:
     if wf.inputs_needed:
         out.append("\n## 📋 开工前需要你提供")
         out += [f"- [ ] {x}" for x in wf.inputs_needed]
+    firsts = [f.options[0] for sp in p.stages for f in sp.fills if f.options]
+    if firsts:
+        out.append("\n## 🔑 接入准备（各工具位首选）")
+        out += access_checklist(firsts)
+        out.append("\n*API Key 请放进环境变量，不要贴进对话；agent 会先检查变量是否已设置。*")
     for i, sp in enumerate(p.stages):
         st = sp.stage
         out.append(f"\n## {RANK[i]} {st.name}")
