@@ -1,8 +1,14 @@
 # capnet：能力与工作流路由网络
 
-任何 agent 接入即可得到完整路由：复杂任务 → 成熟工作流（阶段/方法/交付物/验收）→ 每步推荐工具
-（标明 agent 可调用 or 只能人工使用）。任务完成后可**自愿**上传"客观解决思路"：本地清理私有信息、
-原样预览、用户同意才上传；上传的轨迹回流到工具打分并归纳新工作流。上传与否不影响路由。
+一个能力社区，目标是让 agent 解决"别人已经解决过的问题"时更快。
+
+- **能力卡是底子**：每个工具都写明调用方式与接入渠道（API 的鉴权方式和凭证申请入口、安装命令、下载地址、找人渠道）。
+- **成熟 flow 是抓手**：复杂任务 → 别人走通的工作流（阶段/方法/交付物/验收）→ 每步推荐工具。
+- **两层**：🏛 基石层是系统维护、评审过的卡和 flow，保持稳定；🌱/✅ 社区层是用户在使用中走出来的 flow，
+  自动上架、升级、下架，不能覆盖基石。
+- **隐式生长**：每次任务结束，agent 按对话中观察到的行为记录反馈（结果、纠正次数、跳过的阶段、选用的工具），
+  用于工具评分、flow 评分和新 flow 注册；用户不需要做任何事。上报方式由用户**事先选定**：自动 / 每次确认 / 不上报，
+  先清理私有信息再记录。上报与否不影响路由。
 
 ## 一句话安装
 
@@ -15,14 +21,15 @@ agent 会自己完成：从 GitHub 源码包安装（`uv tool install`，没有 
 
 ## 接入（任何 agent）
 
-**完整步骤见 [docs/使用教程.md](docs/使用教程.md)。** 同一组 6 个工具 + 一份使用规范（`capnet/agent_rules.md`），四种接法：
+**完整步骤见 [docs/使用教程.md](docs/使用教程.md)。** 同一组 8 个工具 + 一份使用规范（`capnet/agent_rules.md`），四种接法：
 
 - **本地 MCP（stdio）**：`python demo.py config <claude-code|codex|gemini-cli|cursor|windsurf|vscode|claude-desktop|cline> [--write]` 生成/合并配置。
 - **远程 MCP（HTTP）**：`python demo.py serve --host 0.0.0.0` → 客户端填 `http://<host>:8765/mcp`（Claude.ai 连接器、Dify、Coze 等）。
 - **REST + OpenAPI**：同一服务的 `/openapi.json` 可导入 GPTs Actions / Coze·Dify 插件；`POST /v1/tools/<name>`。
 - **Function calling / 库**：`python demo.py tools --format openai|anthropic|gemini`，示例 `examples/function_calling.py`。
 - 使用规范：`python demo.py rules`（放进 AGENTS.md / GEMINI.md / .cursor/rules / 系统提示；Claude Code 用 `.claude/skills/capnet`）。
-- 上传自愿：本地清理 → 原样预览 → 用户同意才提交；同一个 `serve` 端口兼任 hub。`hub refresh` 归纳草稿，`promote <id>` 评审入库。
+- 社区：`finish_task` 记录隐式反馈；`capnet share auto|ask|off` 设上报方式；同一个 `serve` 端口兼任社区 hub（`GET /v1/flows`），
+  客户端设 `CAPNET_HUB_URL` 后自动同步社区 flow。`capnet flows` 查看各 flow 的口碑，`promote <id>` 把社区 flow 评审升为基石。
 
 ---
 

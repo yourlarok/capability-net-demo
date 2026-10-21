@@ -57,6 +57,7 @@ class Workflow:
     completion_signals: list[str] = field(default_factory=list)
     intents: list[str] = field(default_factory=list)
     inputs_needed: list[str] = field(default_factory=list)  # 开工前需要用户提供的东西
+    community: dict = field(default_factory=dict)  # 社区 flow 的归纳信息：support / success_rate / status
 
     def searchable_fields(self) -> dict[str, set[str]]:
         return {
@@ -85,6 +86,7 @@ def parse_workflow(item: dict) -> Workflow:
         industry=item.get("industry", ""), source=src,
         stages=stages, completion_signals=item.get("completion_signals", []),
         intents=item.get("intents", []), inputs_needed=item.get("inputs_needed", []),
+        community=item.get("community", {}),
     )
 
 

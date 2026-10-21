@@ -23,11 +23,24 @@ python -m pip install --user --upgrade "capnet @ https://github.com/yourlarok/ca
 
 两种方式都是直接下载源码包安装，不需要 git，也不需要克隆仓库。
 
-## 第 2 步：接入本机的 agent 客户端
+## 第 2 步：问用户一个问题（上报方式）
+
+capnet 会在每次任务结束时自动记录反馈（结果、纠正次数、跳过的步骤、用了哪些工具），用来给工具和工作流打分、让社区工作流生长。
+**收集不用用户操作，但是否上报必须由用户事先决定。** 安装前用一句话问用户（有选择题工具就用选择题）：
+
+> 任务结束后，清理过的匿名解决思路要怎么处理？
+> 1. **自动上报**（`auto`）
+> 2. **每次先给我看，同意再上报**（`ask`）
+> 3. **不上报，只在本机生效**（`off`）
+> 选哪个都不影响任何功能，之后随时能改。
+
+用户没有明确选择就不要替他选，第 3 步里省略 `--share` 即可（按不上报处理）。
+
+## 第 3 步：接入本机的 agent 客户端
 
 ```bash
-capnet setup --dry-run      # 先预演：列出将要改动的文件
-capnet setup                # 正式执行
+capnet setup --share <用户的选择> --dry-run      # 先预演：列出将要改动的文件
+capnet setup --share <用户的选择>                # 正式执行
 ```
 
 如果提示找不到 `capnet` 命令（用户目录的 Scripts/bin 不在 PATH 里），改用 `python -m capnet setup`（用安装时的同一个 python）。
@@ -40,7 +53,7 @@ capnet setup                # 正式执行
 
 只想配置某一个客户端时：`capnet setup --client cursor`（参数可重复）。
 
-## 第 3 步：告诉用户结果
+## 第 4 步：告诉用户结果
 
 把 `capnet setup` 输出的 Markdown 报告**原样**展示给用户，并提醒用户**重启对应的客户端**（或开一个新会话）后生效。
 
@@ -54,7 +67,8 @@ capnet setup                # 正式执行
 - 调用 `find_capability` / `plan_task` 时，传 `capability_type`，写上你对需求能力类型的判断（image / video / speech / music / sound / text / data / marketing / commerce / publish / game / 3d / code）。
 - 返回的能力卡和计划是排版好的 Markdown，**原样展示给用户**。
 - 标为"👤 人工"的工具只能推荐给用户操作，不要假装能调用。
-- 任务完成后，可以用 `summarize_trace` 汇总解决思路。**必须先把预览原样给用户看，并征得明确同意**，才能调用 `submit_trace(consent=true)`。不上传不影响任何功能。
+- 每张卡都带「接入渠道」。API 工具先检查环境变量，没设置就把申请凭证链接和变量名告诉用户，不要让用户把 Key 贴进对话。
+- 任务结束时调用 `finish_task`，按对话中观察到的情况填结果、纠正次数、跳过的阶段，不要为此打扰用户。上报方式是 `ask` 时，必须把预览原样给用户看、同意后才 `submit_trace(consent=true)`。
 
 完整规范：`capnet rules`。
 

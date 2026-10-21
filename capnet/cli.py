@@ -252,6 +252,35 @@ def cmd_submit(args) -> None:
     print(json.dumps(hub.submit(args.preview_id, consent=args.yes), ensure_ascii=False))
 
 
+def cmd_share(args) -> None:
+    from capnet import community
+    if args.mode:
+        community.set_share(args.mode)
+    mode = community.get_share()
+    print(f"上报方式：{community.SHARE_LABEL.get(mode, '未选择（按不上报处理）')}")
+
+
+def cmd_sync(args) -> None:
+    from capnet import community
+    print(json.dumps(community.sync(args.hub, force=True), ensure_ascii=False))
+
+
+def cmd_flows(args) -> None:
+    """社区与基石 flow 一览：层级、使用次数、接受率、常被跳过的阶段（维护者据此改进基石 flow）。"""
+    from capnet import community
+    from capnet.registry import Registry
+    reg = Registry.load()
+    rows = sorted(reg.workflows, key=lambda w: -reg.trust(w))
+    print("| flow | 层级 | 信任分 | 使用 | 接受率 | 平均纠正 | 常被跳过 |")
+    print("|---|---|---|---|---|---|---|")
+    for w in rows:
+        st = reg.flow_stats.get(w.workflow_id)
+        skip = "、".join(f"{n} {r:.0%}" for n, r in st.often_skipped()) if st else ""
+        rate = f"{st.success_rate:.0%}" if st and st.runs else "—"
+        print(f"| `{w.workflow_id}` {w.name} | {community.tier(w, st)} | {reg.trust(w):.2f} | "
+              f"{st.runs if st else 0} | {rate} | {st.avg_corrections if st else 0:.1f} | {skip or '—'} |")
+
+
 def cmd_hub(args) -> None:
     from capnet import hub
     if args.action == "serve":
@@ -450,7 +479,20 @@ def main() -> None:
     sp.add_argument("--env", action="append", default=[], help="KEY=VALUE，如 CAPNET_HUB_URL=http://host:8765")
     sp.add_argument("--remove", action="store_true", help="撤销 capnet 的全部配置与规范")
     sp.add_argument("--dry-run", action="store_true", help="只列出将要做的改动")
+    sp.add_argument("--share", choices=["auto", "ask", "off"], default=None,
+                    help="上报方式（开工前由用户选定）：auto 自动上报清理后的思路 / ask 每次先确认 / off 不上报")
     sp.set_defaults(fn=lambda a: __import__("capnet.setup_agent", fromlist=["main"]).main(a))
+
+    sp = sub.add_parser("share", help="查看或设置上报方式 auto / ask / off")
+    sp.add_argument("mode", nargs="?", choices=["auto", "ask", "off"])
+    sp.set_defaults(fn=cmd_share)
+
+    sp = sub.add_parser("sync", help="从社区 hub 拉取社区 flow 与评分（CAPNET_HUB_URL）")
+    sp.add_argument("--hub", default=None)
+    sp.set_defaults(fn=cmd_sync)
+
+    sp = sub.add_parser("flows", help="flow 一览：基石 / 社区层级、使用反馈、常被跳过的阶段")
+    sp.set_defaults(fn=cmd_flows)
 
     sp = sub.add_parser("tools", help="导出 function calling 工具定义")
     sp.add_argument("--format", choices=["openai", "anthropic", "gemini", "mcp"], default="openai")

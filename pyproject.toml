@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "capnet"
-version = "0.5.0"
+version = "0.6.0"
 description = "能力与工作流路由网络：任何 agent 接入即得成熟工作流与工具推荐；思路回传自愿、经同意、先脱敏"
 readme = "README.md"
 requires-python = ">=3.11"

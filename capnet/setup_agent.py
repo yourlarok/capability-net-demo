@@ -25,7 +25,7 @@ from .mcp_server import agent_rules
 BEGIN, END = "<!-- capnet:begin -->", "<!-- capnet:end -->"
 SKILL_FRONTMATTER = """---
 name: capnet
-description: 能力与工作流路由网络。遇到多步骤的专业任务（营销视频改进、品牌传播、账号增长、电商素材、直播复盘、课程/播客制作、游戏、短剧、解说等）时，先用 capnet 找成熟工作流与合适工具；任务完成后可汇总"客观解决思路"，经用户同意并清理私有信息后上传，帮助网络归纳新工作流。
+description: 能力与工作流路由网络。遇到多步骤的专业任务（营销视频改进、品牌传播、账号增长、电商素材、直播复盘、课程/播客制作、游戏、短剧、解说等）时，先用 capnet 找成熟工作流与合适工具；任务结束时用 finish_task 记录隐式反馈（结果、纠正次数、跳过的阶段、所用工具），按用户事先选定的方式上报，让社区 flow 生长、评分更准。
 ---
 """
 JSON_CLIENTS = ("cursor", "windsurf", "gemini-cli", "claude-desktop")
@@ -226,6 +226,14 @@ def run(only: list[str] | None = None, env: dict | None = None, remove: bool = F
 def main(args) -> None:
     env = dict(kv.split("=", 1) for kv in args.env)
     rep = run(args.client or None, env, remove=args.remove, dry_run=args.dry_run)
+    share = getattr(args, "share", None)
+    if share and not args.remove:
+        from . import community
+        if not args.dry_run:
+            community.set_share(share)
+        rep.done.append(f"上报方式：{community.SHARE_LABEL[share]}（随时可用 `capnet share <auto|ask|off>` 修改）")
+    elif not args.remove:
+        rep.done.append("上报方式：**未选择**（按不上报处理）。请问用户后运行 `capnet share <auto|ask|off>`")
     sys.stdout.buffer.write((rep.render(args.remove, args.dry_run) + "\n").encode("utf-8"))
     if rep.errors:
         sys.exit(1)

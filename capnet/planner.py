@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 
 from .registry import Registry
 from .scoring import ScoreContext
+from .community import FlowStats, stats_line
 from .cardview import RANK, access_checklist, render_capabilities, slot_table
 from .intent import describe
 from .search import RankedCard, as_options, search
@@ -60,6 +61,7 @@ class Plan:
     understanding: str = ""         # 直搜时对需求能力类型的理解（渲染用）
     understanding_source: str = ""  # agent 声明 / 关键词推断
     excluded: int = 0               # 被意图门排除的族外候选数
+    flow_stats: FlowStats | None = None  # 该 flow 的社区使用反馈
 
     @property
     def matched(self) -> bool:
@@ -141,8 +143,13 @@ def plan(query: str, reg: Registry, k: int = 3, max_cost: float | None = None,
          market: str | None = None, families: list[str] | None = None) -> Plan:
     market = market or infer_market(query)
     ctx = ScoreContext(total_selections=reg.total_selections, max_cost=max_cost)
-    cands = find_workflows(query, reg.workflows, k=3, task_type=task_type)
-    alts = [(round(r, 3), w.workflow_id) for r, w in cands]
+    cands = find_workflows(query, reg.workflows, k=5, task_type=task_type)
+    # 过了相关度门槛的候选里，按 相关度 ×（0.6 + 0.4 × 信任分）选：同样对题时，走通的人多、
+    # 接受率高、纠正少的 flow 优先；基石 flow 有较高先验，新长出来的社区 flow 要靠使用数据追上来
+    ok = [(r, w) for r, w in cands if r >= min_relevance]
+    ok.sort(key=lambda x: -x[0] * (0.6 + 0.4 * reg.trust(x[1])))
+    cands = ok + [x for x in cands if x not in ok]
+    alts = [(round(r, 3), w.workflow_id) for r, w in cands[:3]]
     if not cands or cands[0][0] < min_relevance:
         trace = search(reg.cards, reg.stats, query, ctx, k=k, profile=reg.profile, families=families,
                        keep_ratio=KEEP_RATIO)
@@ -155,11 +162,13 @@ def plan(query: str, reg: Registry, k: int = 3, max_cost: float | None = None,
     rel, wf = cands[0]
     stages = [StagePlan(stage=st, fills=[fill_slot(reg, sl, ctx, k, market) for sl in st.slots])
               for st in wf.stages]
-    return Plan(query=query, workflow=wf, relevance=rel, alternatives=alts[1:], stages=stages, market=market)
+    return Plan(query=query, workflow=wf, relevance=rel, alternatives=alts[1:], stages=stages, market=market,
+                flow_stats=reg.flow_stats.get(wf.workflow_id))
 
 
 KEEP_RATIO = 0.3  # 直搜结果：弱于首选 30% 以下的不凑数
-SOURCE_LABEL = {"expert-curation": "专家整理", "induced": "从真实轨迹归纳", "manual": "人工编写"}
+SOURCE_LABEL = {"expert-curation": "专家整理", "conversation-induction": "从真实使用归纳", "practice-summary": "实践总结",
+                "template-import": "模板导入", "manual": "人工编写"}
 
 
 def render_plan(p: Plan) -> str:
@@ -181,12 +190,14 @@ def render_plan(p: Plan) -> str:
     out.append(f"> **任务** {p.query}")
     out.append(f"> **工作流** `{wf.workflow_id}` · 匹配度 {p.relevance:.2f} · {SOURCE_LABEL.get(src, src)}"
                + (f"（{wf.source['derived_from']}）" if wf.source.get("derived_from") else ""))
+    out.append(f"> **来源与口碑** {stats_line(wf, p.flow_stats)}")
     out.append(f"> **工具覆盖** {p.coverage:.0%} 的工具位有推荐 · {p.auto_ratio:.0%} 可由 agent 自动执行，其余需你在软件里操作")
     out.append("")
     out.append("**流程** " + " → ".join(f"{RANK[i]} {sp.stage.name}" for i, sp in enumerate(p.stages)))
     if wf.inputs_needed:
         out.append("\n## 📋 开工前需要你提供")
         out += [f"- [ ] {x}" for x in wf.inputs_needed]
+    skipped = dict(p.flow_stats.often_skipped()) if p.flow_stats else {}
     firsts = [f.options[0] for sp in p.stages for f in sp.fills if f.options]
     if firsts:
         out.append("\n## 🔑 接入准备（各工具位首选）")
@@ -195,6 +206,8 @@ def render_plan(p: Plan) -> str:
     for i, sp in enumerate(p.stages):
         st = sp.stage
         out.append(f"\n## {RANK[i]} {st.name}")
+        if st.name in skipped:
+            out.append(f"> 💬 社区反馈：{skipped[st.name]:.0%} 的使用者跳过了这一步，可按实际情况取舍")
         if st.goal:
             out.append(f"**目标**　{st.goal}")
         if st.method:

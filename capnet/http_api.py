@@ -21,7 +21,7 @@ import os
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import hub
+from . import community, hub
 from .mcp_server import TOOLS, VERSION, Server, agent_rules
 
 MAX_BODY = 256 * 1024
@@ -117,6 +117,8 @@ def make_handler(server: Server, known: set[str]):
                 return self._send(200, {"ok": True, "version": VERSION})
             if path == "/v1/stats":
                 return self._send(200, hub.stats())
+            if path == "/v1/flows":  # 社区 flow 与评分，供各客户端 community.sync() 拉取
+                return self._send(200, community.export())
             if path == "/v1/tools":
                 return self._send(200, [{"name": t["name"], "description": t["description"],
                                          "parameters": t["inputSchema"]} for t in TOOLS])
@@ -177,10 +179,10 @@ def make_handler(server: Server, known: set[str]):
 
 
 def serve(host: str = "127.0.0.1", port: int = 8765) -> None:
-    server = Server()
+    server = Server(remote=True)
     known = {c.id for c in server.reg.cards}
     httpd = ThreadingHTTPServer((host, port), make_handler(server, known))
     print(f"capnet 服务 http://{host}:{port}\n"
           f"  远程 MCP   POST /mcp\n  REST       POST /v1/tools/<name>   OpenAPI  GET /openapi.json\n"
-          f"  使用规范   GET /v1/rules            汇总端   POST /v1/traces")
+          f"  使用规范   GET /v1/rules            汇总端   POST /v1/traces   社区 flow  GET /v1/flows")
     httpd.serve_forever()

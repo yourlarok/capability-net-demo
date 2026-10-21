@@ -9,12 +9,14 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 
+from . import community
 from .cards import Card, flatten, load_apps
+from .community import FlowStats
 from .domains import UserProfile, load_profile
 from .paths import DATA, hub_dir, user_workflows_dir
 from .scoring import Stats
 from .telemetry import Telemetry
-from .workflows import Workflow, load_workflows
+from .workflows import Workflow, load_workflows, parse_workflow
 
 
 def catalog_paths(data_dir: str = DATA) -> list[str]:
@@ -31,6 +33,7 @@ class Registry:
     stats: dict[str, Stats]
     workflows: list[Workflow]
     profile: UserProfile = field(default_factory=UserProfile)
+    flow_stats: dict = field(default_factory=dict)  # workflow_id -> FlowStats（隐式信号汇总）
 
     @classmethod
     def load(cls, data_dir: str = DATA, half_life: float = 30.0, use_profile: bool = True,
@@ -60,8 +63,17 @@ class Registry:
             mine = load_workflows(extra)
             ids = {w.workflow_id for w in mine}
             workflows = [w for w in workflows if w.workflow_id not in ids] + mine
+        flow_stats: dict[str, FlowStats] = {}
+        if load_hub:  # 社区层：本机 hub + 远端同步缓存；不能覆盖基石层的 id
+            ids = {w.workflow_id for w in workflows}
+            workflows += [w for w in (parse_workflow(d) for d in community.load_community())
+                          if w.workflow_id not in ids]
+            flow_stats = {**community.load_flow_stats(), **community.remote_stats()}
         return cls(cards=cards, stats=tel.stats(now=0.0, half_life=half_life),
-                   workflows=workflows, profile=profile)
+                   workflows=workflows, profile=profile, flow_stats=flow_stats)
+
+    def trust(self, wf: Workflow) -> float:
+        return community.trust(wf, self.flow_stats.get(wf.workflow_id))
 
     def in_domains(self, domains: list[str]) -> list[Card]:
         return [c for c in self.cards

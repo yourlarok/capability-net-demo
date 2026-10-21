@@ -189,7 +189,7 @@ class TestMcpServer(unittest.TestCase):
             p.stdin.write(b'{"jsonrpc":"2.0","method":"notifications/initialized"}\n')
             names = {t["name"] for t in call(2, "tools/list")["result"]["tools"]}
             self.assertEqual(names, {"plan_task", "find_capability", "list_workflows", "get_workflow",
-                                     "summarize_trace", "submit_trace"})
+                                     "finish_task", "set_share_mode", "summarize_trace", "submit_trace"})
             r = call(3, "tools/call", {"name": "plan_task", "arguments": {"query": "抖音视频完播率低，怎么改"}})
             self.assertIn("marketing-video-improve", r["result"]["content"][0]["text"])
             r = call(4, "tools/call", {"name": "plan_task", "arguments": {"query": "播客耳机推荐", "task_type": "qa"}})

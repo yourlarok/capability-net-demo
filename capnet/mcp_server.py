@@ -5,6 +5,8 @@
   plan_task        复杂任务 -> 成熟工作流 + 逐阶段方法 + 工具推荐
   find_capability  单个能力缺口 -> 工具候选
   list_workflows / get_workflow  浏览工作流库
+  finish_task      任务结束时自动记录隐式反馈（结果/纠正/跳过/所用工具/方法），按用户事先选定的上报方式处理
+  set_share_mode   记录用户选定的上报方式 auto / ask / off（只在用户明确选择后调用）
   summarize_trace  把一次执行整理成"只含客观思路"的清理后预览（本地，不上传）
   submit_trace     用户明确同意后上传该预览；consent=false 则删除预览
 同一个 Server 被三种接入方式复用：stdio MCP（本文件 main）、HTTP MCP / REST / OpenAPI（http_api.py）、
@@ -19,7 +21,7 @@ import sys
 import threading
 from dataclasses import asdict
 
-from . import hub
+from . import community, hub
 from .gaps import log_gap
 from .paths import gaps_path
 from .cardview import render_capabilities
@@ -32,7 +34,7 @@ from .search import as_options, search
 from .traces import summarize
 
 GAPS = gaps_path()
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 RULES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent_rules.md")
 
 
@@ -62,10 +64,12 @@ def _types(a: dict) -> list[str] | None:
 PROMPTS = [{"name": "capnet_rules", "description": "capnet 使用规范：何时路由、人工工具不得假装调用、上传前必须征得同意"}]
 
 INSTRUCTIONS = (
-    "capnet 是能力与工作流路由网络。遇到多步骤的专业任务（营销、电商、内容生产、课程、游戏等），"
-    "先调 plan_task 获取成熟工作流与工具推荐；标注'人工使用'的工具只能推荐给用户操作，不得假装能调用。"
-    "任务完成后可调 summarize_trace 生成只含客观思路的清理预览，必须原样展示给用户并征得同意，"
-    "同意才调 submit_trace(consent=true)；用户拒绝则 submit_trace(consent=false)。上传与否不影响路由。"
+    "capnet 是能力与工作流路由网络：系统维护的基石 flow + 用户在使用中长出来的社区 flow。"
+    "遇到多步骤的专业任务（营销、电商、内容生产、课程、游戏等），先调 plan_task 获取别人走通过的成熟做法与工具推荐；"
+    "标注'人工使用'的工具只能推荐给用户操作，不得假装能调用。"
+    "任务结束时调 finish_task，按对话中观察到的行为如实填写结果、用户纠正次数、跳过的阶段——不要为此打扰用户。"
+    "上报方式由用户事先选定（auto/ask/off）；ask 模式下必须把预览原样给用户看、同意后才 submit_trace。"
+    "上报与否不影响任何路由结果。"
 )
 
 _STEP_SCHEMA = {
@@ -79,6 +83,23 @@ _STEP_SCHEMA = {
         "approach": {"type": "string", "description": "这一步的方法，一句话，不含具体内容/名称/数字"},
     },
     "required": ["stage", "domain", "ok"],
+}
+
+_FINISH_PROPS = {
+    "problem": {"type": "string", "description": "泛化的问题类型，如'营销视频完播率低'，不写公司/产品名"},
+    "industry": {"type": "string", "description": "如 marketing/video"},
+    "workflow_id": {"type": "string", "description": "依据的 flow（plan_task 返回的 workflow_id）；没有就留空"},
+    "outcome": {"type": "string", "enum": ["accepted", "partial", "abandoned"],
+                "description": "按用户表现判断：接受/采用了结果=accepted，只用了一部分=partial，中途放弃或转去别处=abandoned"},
+    "corrections": {"type": "integer",
+                    "description": "用户纠正、表示不满、要求重来的次数（如'不对''不是这个意思''重来'），没有就是 0"},
+    "skipped": {"type": "array", "items": {"type": "string"}, "description": "计划里没有做的阶段名"},
+    "steps": {"type": "array", "items": _STEP_SCHEMA, "description": "实际走过的步骤；entry_id 填用户最终选用的工具"},
+    "lessons": {"type": "array", "items": {"type": "string"}, "description": "可迁移的经验，最多 5 条"},
+    "private_terms": {"type": "array", "items": {"type": "string"},
+                      "description": "用户不想外传的词（公司/产品/人名），替换为 [私有]；只用于本次清理"},
+    "share_mode": {"type": "string", "enum": ["auto", "ask", "off"],
+                   "description": "仅连接远程 capnet 服务时需要：用户开工前选定的上报方式。本机安装时忽略（读本机配置）"},
 }
 
 TOOLS = [
@@ -105,6 +126,15 @@ TOOLS = [
     {"name": "get_workflow", "description": "取单个工作流的完整定义。",
      "inputSchema": {"type": "object", "properties": {"workflow_id": {"type": "string"}},
                      "required": ["workflow_id"]}},
+    {"name": "finish_task",
+     "description": "任务结束（用户接受、部分采用或放弃）时调用，记录隐式反馈：结果、用户纠正次数、跳过的阶段、实际步骤与所用工具。"
+                    "信息来自你对对话的观察，不要为此询问用户。它会更新工具与 flow 的评分；没有现成 flow 的新做法会成为社区 flow。"
+                    "之后按用户事先选定的上报方式处理：auto 自动上报清理后的思路，ask 返回预览（须给用户看并征得同意），off 只在本机生效。",
+     "inputSchema": {"type": "object", "properties": _FINISH_PROPS, "required": ["problem", "steps", "outcome"]}},
+    {"name": "set_share_mode",
+     "description": "记录用户选定的上报方式。只在用户明确做出选择后调用：auto=自动上报清理后的思路，ask=每次先确认，off=不上报。",
+     "inputSchema": {"type": "object", "properties": {"mode": {"type": "string", "enum": list(community.SHARE_MODES)}},
+                     "required": ["mode"]}},
     {"name": "summarize_trace",
      "description": "把刚完成的任务整理成只含客观解决思路的轨迹，本地清理私有信息并生成预览与 preview_id。"
                     "不上传。返回的预览必须原样展示给用户并询问是否同意上传。",
@@ -128,7 +158,10 @@ TOOLS = [
 
 
 class Server:
-    def __init__(self):
+    def __init__(self, remote: bool = False):
+        # remote=True：作为多人共用的远程服务运行，本服务的 hub 就是社区 hub，
+        # 收到的反馈即是上报，所以上报方式必须由每个用户自己选（finish_task.share_mode），不读服务端配置
+        self.remote = remote
         self._reg: Registry | None = None
         self._lock = threading.Lock()  # HTTP 模式多线程共享同一个 Server
 
@@ -136,6 +169,7 @@ class Server:
     def reg(self) -> Registry:
         with self._lock:
             if self._reg is None:
+                community.sync()  # 配置了社区 hub 时拉取社区 flow 与评分（有缓存期，失败沿用旧缓存）
                 # 对外推荐只给有真实接入渠道的工具；CAPNET_DEMO_CARDS=1 时保留示例卡（演示路由打分用）
                 self._reg = Registry.load(include_demo=os.environ.get("CAPNET_DEMO_CARDS") == "1")
             return self._reg
@@ -152,7 +186,8 @@ class Server:
             raise LookupError(f"未知工具 {name}")
         args = dict(args or {})
         try:
-            out = self.summarize_trace(args, client_id) if name == "summarize_trace" else getattr(self, name)(args)
+            out = (getattr(self, name)(args, client_id) if name in ("summarize_trace", "finish_task")
+                   else getattr(self, name)(args))
         except (KeyError, ValueError, TypeError) as e:
             return f"参数错误：{e}", True, None
         return out if len(out) == 3 else (out[0], out[1], None)
@@ -179,7 +214,12 @@ class Server:
                        "options": slim(f.options)} for sp in p.stages for f in sp.fills],
             "fallback": slim(p.fallback),
         }
-        return render_plan(p) + DISPLAY_HINT, False, structured
+        structured["flow"] = community.stats_dict(p.workflow, p.flow_stats) if p.workflow else None
+        hint = DISPLAY_HINT
+        if community.get_share() is None:
+            hint += ("\n*（给 agent：用户还没选上报方式。开工前用一句话问一次：任务结束后匿名思路要「自动上报 / 每次先确认 / 不上报」？"
+                     "按回答调 set_share_mode。无论选什么，任务结束时都调 finish_task。）*")
+        return render_plan(p) + hint, False, structured
 
     def find_capability(self, a: dict) -> tuple[str, bool, dict]:
         q, dom, k = a.get("query"), a.get("domain"), int(a.get("k") or 5)
@@ -205,9 +245,11 @@ class Server:
 
     def list_workflows(self, a: dict) -> tuple[str, bool]:
         ind = a.get("industry")
+        reg = self.reg
         rows = [{"workflow_id": w.workflow_id, "name": w.name, "industry": w.industry,
-                 "source": w.source.get("kind"), "stages": len(w.stages)}
-                for w in self.reg.workflows if not ind or w.industry.startswith(ind)]
+                 "source": w.source.get("kind"), "stages": len(w.stages),
+                 **community.stats_dict(w, reg.flow_stats.get(w.workflow_id))}
+                for w in reg.workflows if not ind or w.industry.startswith(ind)]
         return json.dumps(rows, ensure_ascii=False, indent=1), False
 
     def get_workflow(self, a: dict) -> tuple[str, bool]:
@@ -215,6 +257,54 @@ class Server:
         if wf is None:
             return f"没有工作流 {a['workflow_id']}", True
         return json.dumps(asdict(wf), ensure_ascii=False, indent=1), False
+
+    def finish_task(self, a: dict, client_id: str | None = None) -> tuple[str, bool]:
+        """隐式收集：清理后先入本机 hub（工具 / flow 评分、本机社区 flow），再按事先选定的方式上报。"""
+        known = {c.id for c in self.reg.cards}
+        extra = [t for t in a.pop("private_terms", None) or [] if isinstance(t, str)]
+        chosen = a.pop("share_mode", None)
+        a["accepted"] = a.get("outcome") == "accepted"
+        s = summarize(a, known, load_private_terms() + extra, contributor_raw=client_id)
+        if self.remote:
+            return self._finish_remote(s, chosen, known)
+        remote = os.environ.get("CAPNET_HUB_URL")
+        local = hub.ingest(s.item, known)
+        self._reg = None  # 新反馈进入打分，下次调用重新加载
+        mode = community.get_share()
+        note = f"已记录本次反馈（本机）：{local.get('status')}。"
+        if mode == "auto" and remote:
+            hub.save_pending(s)
+            res = hub.submit(s.preview_id, True, known_entries=known)
+            note += f"已按「{community.SHARE_LABEL['auto']}」上报：{res.get('status')}。"
+        elif mode == "ask" and remote:
+            hub.save_pending(s)
+            return (note + "\n\n" + s.render() + "\n\n下一步：用户选的是「每次先确认」。把以上内容原样给用户看，问是否同意上报。"
+                    f"同意 → submit_trace(preview_id='{s.preview_id}', consent=true)；不同意 → consent=false。", False)
+        elif mode is None:
+            note += "用户还没选上报方式，本次只在本机生效；下次开工前问一次用户并调 set_share_mode。"
+        elif not remote and mode != "off":
+            note += "未配置社区 hub（CAPNET_HUB_URL），本次只在本机生效。"
+        else:
+            note += "用户选择不上报，只在本机生效。"
+        return note + "（不需要告诉用户细节，一句话带过即可。）", False
+
+    def _finish_remote(self, s, mode: str | None, known: set[str]) -> tuple[str, bool]:
+        if mode == "auto":
+            res = hub.ingest(s.item, known)
+            self._reg = None
+            return f"已按「{community.SHARE_LABEL['auto']}」上报清理后的思路：{res.get('status')}。", False
+        if mode == "ask":
+            hub.save_pending(s)
+            return (s.render() + "\n\n下一步：把以上内容原样给用户看，问是否同意上报。"
+                    f"同意 → submit_trace(preview_id='{s.preview_id}', consent=true)；不同意 → consent=false。", False)
+        return ("未上报（用户选择不上报，或还没选上报方式）。远程服务不保存任何内容；"
+                "如需记录，请先问用户并在 finish_task 里传 share_mode。"), False
+
+    def set_share_mode(self, a: dict) -> tuple[str, bool]:
+        if self.remote:
+            return "远程服务不保存个人设置：请记住用户的选择，之后每次 finish_task 传 share_mode。", False
+        community.set_share(a["mode"])
+        return f"已记录上报方式：{community.SHARE_LABEL[a['mode']]}。随时可以让我改，或运行 `capnet share <auto|ask|off>`。", False
 
     def summarize_trace(self, a: dict, client_id: str | None = None) -> tuple[str, bool]:
         known = {c.id for c in self.reg.cards}

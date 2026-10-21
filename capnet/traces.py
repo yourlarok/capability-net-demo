@@ -52,6 +52,10 @@ class Trace:
     problem: str = ""  # 泛化的问题类型，如"营销视频播放量低"
     lessons: list[str] = field(default_factory=list)
     workflow_id: str = ""  # 执行时依据的工作流（若有）
+    # 隐式信号（agent 从对话行为观察得到，见 community.py）
+    outcome: str = ""      # accepted / partial / abandoned
+    corrections: int = 0   # 用户纠正、表示不满、要求重来的次数
+    skipped: list[str] = field(default_factory=list)  # 计划里没做的阶段
 
     @property
     def signature(self) -> tuple[str, ...]:
@@ -85,7 +89,8 @@ def redact(trace: Trace) -> Trace:
     """最小脱敏（不做文本清理）：去掉任务原文，贡献者只留哈希。完整清理用 summarize()。"""
     return Trace(contributor=hash_contributor(trace.contributor), industry=trace.industry,
                  steps=trace.steps, accepted=trace.accepted, t=trace.t, task="",
-                 problem=trace.problem, lessons=trace.lessons, workflow_id=trace.workflow_id)
+                 problem=trace.problem, lessons=trace.lessons, workflow_id=trace.workflow_id,
+                 outcome=trace.outcome, corrections=trace.corrections, skipped=trace.skipped)
 
 
 def parse_trace(item: dict) -> Trace:
@@ -94,6 +99,8 @@ def parse_trace(item: dict) -> Trace:
         steps=[Step(**s) for s in item["steps"]], accepted=bool(item["accepted"]),
         t=item.get("t", 0.0), task=item.get("task", ""), problem=item.get("problem", ""),
         lessons=list(item.get("lessons", [])), workflow_id=item.get("workflow_id", ""),
+        outcome=item.get("outcome", ""), corrections=int(item.get("corrections") or 0),
+        skipped=list(item.get("skipped") or []),
     )
 
 
@@ -142,6 +149,10 @@ class Summary:
                        + (f" — {s['approach']}" if s["approach"] else ""))
         if it["lessons"]:
             out.append("- 经验：" + "；".join(it["lessons"]))
+        sig = [f"结果 {OUTCOME_LABEL.get(it['outcome'], it['outcome'] or '未填')}", f"用户纠正 {it['corrections']} 次"]
+        if it["skipped"]:
+            sig.append("跳过的阶段：" + "、".join(it["skipped"]))
+        out.append("- 隐式反馈：" + " · ".join(sig))
         removed = "、".join(f"{k}×{v}" for k, v in self.report.removed.items()) or "无"
         out.append(f"\n已清理：{removed}")
         out.append("不会上传：任务原文、文件与产出内容、成本金额、精确时间、你的身份（贡献者仅为随机安装 id 的哈希）")
@@ -152,6 +163,8 @@ class Summary:
 
 
 HASH_RE = re.compile(r"^[0-9a-f]{16}$")
+OUTCOMES = ("accepted", "partial", "abandoned")
+OUTCOME_LABEL = {"accepted": "用户接受", "partial": "部分可用", "abandoned": "中途放弃"}
 
 
 def summarize(draft: dict, known_entries: set[str], private_terms: list[str] | None = None,
@@ -189,18 +202,24 @@ def summarize(draft: dict, known_entries: set[str], private_terms: list[str] | N
         rep.add("任务原文")
     lessons = [clean(x, 120) for x in list(draft.get("lessons", []))[:MAX_LESSONS] if str(x).strip()]
     t = float(draft.get("t") or time.time())
+    accepted = bool(draft.get("accepted", False))
+    outcome = draft.get("outcome") if draft.get("outcome") in OUTCOMES else ("accepted" if accepted else "")
     item = {
         "contributor": contributor_hash or hash_contributor(contributor_raw or install_id()),
         "industry": clean(draft.get("industry", ""), 40),
         "steps": steps,
-        "accepted": bool(draft.get("accepted", False)),
+        "accepted": accepted or outcome == "accepted",
         "t": float(int(t // 86400) * 86400),
         "task": "",
         "problem": clean(draft.get("problem", ""), 80),
         "lessons": lessons,
         "workflow_id": str(draft.get("workflow_id", "") or "")[:64],
+        "outcome": outcome,
+        "corrections": max(0, min(int(draft.get("corrections") or 0), 50)),
+        "skipped": [clean(x, 40) for x in list(draft.get("skipped") or [])[:MAX_STEPS] if str(x).strip()],
     }
-    blob = " ".join([item["problem"], *item["lessons"], *(s["approach"] + " " + s["stage"] for s in steps)])
+    blob = " ".join([item["problem"], *item["lessons"], *item["skipped"],
+                     *(s["approach"] + " " + s["stage"] for s in steps)])
     return Summary(item=item, preview_id=fingerprint(item), report=rep, risks=residual_risks(blob))
 
 
@@ -289,7 +308,9 @@ def induce(traces: list[Trace], existing: list[Workflow] | None = None,
         problems = Counter(tr.problem for tr in winners if tr.problem)
         lessons = Counter(x for tr in winners for x in tr.lessons)
         wf = Workflow(
-            workflow_id=_slug(sig), name=" → ".join(st.name for st in stages), industry=industry,
+            workflow_id=_slug(sig),
+            name=problems.most_common(1)[0][0] if problems else " → ".join(st.name for st in stages),
+            industry=industry,
             source={"kind": "conversation-induction",
                     "derived_from": f"{len(winners)} 条成功轨迹 / {support} 位独立贡献者"},
             stages=stages,

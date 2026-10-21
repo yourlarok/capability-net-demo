@@ -18,6 +18,7 @@ import json
 import os
 import urllib.request
 
+from . import community
 from .paths import capnet_home, drafts_dir, hub_dir
 from .traces import (HASH_RE, Summary, credit, fingerprint, induce, load_traces, parse_trace,
                      summarize, workflow_to_dict)
@@ -106,9 +107,22 @@ def ingest(item: dict, known_entries: set[str] | None = None, root: str | None =
         for eid, kind, value in events:
             f.write(json.dumps({"card_id": eid, "kind": kind, "t": clean["t"], "value": value},
                                ensure_ascii=False) + "\n")
+    fev = community.flow_event(clean)
+    if fev:
+        with open(community.flow_events_path(root), "a", encoding="utf-8") as f:
+            f.write(json.dumps(fev, ensure_ascii=False) + "\n")
     with open(seen_path, "a", encoding="utf-8") as f:
         f.write(fp + "\n")
-    return {"status": "accepted", "id": fp, "events": len(events)}
+    flows = community.update_community(root, _foundation())
+    return {"status": "accepted", "id": fp, "events": len(events), "community_flows": len(flows)}
+
+
+def _foundation():
+    """基石 flow（随包 / 仓库 data/workflows），用于判断新轨迹是在强化基石还是长出新路。"""
+    from .paths import DATA
+    from .workflows import load_workflows
+    d = os.path.join(DATA, "workflows")
+    return load_workflows(d) if os.path.isdir(d) else []
 
 
 def refresh(root: str | None = None, min_support: int = 3) -> list[dict]:
