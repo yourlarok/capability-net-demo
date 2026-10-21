@@ -21,6 +21,11 @@ SPEC = os.environ.get("CAPNET_SPEC") or     "https://github.com/yourlarok/capabi
 def _ephemeral_uv() -> bool:
     """是否运行在 uvx 的临时环境里（uv 缓存目录下）：此时 sys.executable 下次可能不存在。"""
     parts = [x.lower() for x in os.path.normpath(sys.prefix).split(os.sep)]
+    if any(x.startswith("archive-v") for x in parts):  # uv 缓存里的环境目录（含自定义 UV_CACHE_DIR）
+        return True
+    cache = os.environ.get("UV_CACHE_DIR")
+    if cache and os.path.normcase(sys.prefix).startswith(os.path.normcase(os.path.abspath(cache))):
+        return True
     return "uv" in parts and "cache" in parts
 
 

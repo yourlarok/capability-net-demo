@@ -32,7 +32,7 @@ from .search import as_options, search
 from .traces import summarize
 
 GAPS = gaps_path()
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 RULES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agent_rules.md")
 
 
