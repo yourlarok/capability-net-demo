@@ -6,8 +6,10 @@
 
 ## 接入（MCP）
 
+**完整步骤见 [docs/使用教程.md](docs/使用教程.md)。**
+
 - 在本仓库目录打开 Claude Code：`.mcp.json` 自动注册 capnet MCP server，`.claude/skills/capnet` 提供使用规范。
-- 全局接入：`claude mcp add capnet -- python <仓库绝对路径>/demo.py mcp`，并把 `.claude/skills/capnet` 复制到 `~/.claude/skills/`。
+- 全局接入：`claude mcp add capnet --scope user -- python <仓库绝对路径>/demo.py mcp`，并把 `.claude/skills/capnet` 复制到 `~/.claude/skills/`。
 - 工具：`plan_task` / `find_capability` / `list_workflows` / `get_workflow` / `summarize_trace` / `submit_trace`。
 - 私有词表：`~/.capnet/private_terms.txt`（每行一个公司名/产品名/人名），汇总时自动替换。
 - 汇总端：`python demo.py hub serve --port 8765` 起 HTTP hub；客户端设 `CAPNET_HUB_URL=http://host:8765`，
